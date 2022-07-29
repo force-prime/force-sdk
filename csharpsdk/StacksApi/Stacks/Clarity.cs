@@ -1,4 +1,6 @@
 ﻿using StacksForce.Utils;
+using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -29,7 +31,7 @@ namespace StacksForce.Stacks
 
         public abstract class Value : IBinarySerializable
         {
-            private readonly Types _type;
+            protected readonly Types _type;
             public Types Type => _type;
 
             protected Value(Types type)
@@ -44,39 +46,44 @@ namespace StacksForce.Stacks
 
             public string AsHex() => this.ToHexString();
 
-            static public Value? FromBytes(byte[] bytes)
+            static public Value? FromBytes(ReadOnlySpan<byte> bytes, out ulong readCount)
             {
-                var valueBytes = bytes.Slice(1);
-                switch (bytes[0])
+                ulong valueReadCount = bytes[0] switch
                 {
-                    case (byte)Types.ResponseErr:
-                        return new Err(FromBytes(valueBytes));
-                    case (byte)Types.ResponseOk:
-                        return new Ok(FromBytes(valueBytes));
-                    case (byte)Types.None:
-                        return new None();
-                    case (byte)Types.UInt:
-                        return new UInteger128(valueBytes);
-                    case (byte)Types.StringASCII:
-                        return new StringType(valueBytes.Slice(4), Encoding.ASCII, Types.StringASCII); // skip 4 len bytes
-                    case (byte)Types.OptionalSome:
-                        return new OptionalSome(FromBytes(valueBytes));
-                    case (byte)Types.PrincipalStandard:
-                        return StandardPrincipal.Deserialize(valueBytes);
-                    case (byte)Types.PrincipalContract:
-                        return ContractPrincipal.Deserialize(valueBytes);
-                    case (byte)Types.BoolTrue:
-                    case (byte)Types.BoolFalse:
-                        return new Boolean(bytes[0] == (byte)Types.BoolTrue);
-                    case (byte)Types.Tuple:
-                        return Tuple.FromBytes(valueBytes);
-                }
-                return null;
+                    (byte)Types.UInt => 16,
+                    (byte)Types.Int => 16,
+                    _ => 0
+                };
+
+                var valueBytes = bytes.Slice(1);
+
+                Value? result = bytes[0] switch
+                {
+                    (byte)Types.Buffer => ByteBuffer.ReadFrom(valueBytes, out valueReadCount),
+                    (byte)Types.ResponseErr => new Err(FromBytes(valueBytes, out valueReadCount)),
+                    (byte)Types.ResponseOk => new Ok(FromBytes(valueBytes, out valueReadCount)),
+                    (byte)Types.None => new None(),
+                    (byte)Types.UInt => new UInteger128(valueBytes.Slice(0, 16)),
+                    (byte)Types.Int => new Integer128(valueBytes.Slice(0, 16)),
+                    (byte)Types.StringASCII => StringType.ReadFrom(valueBytes, Encoding.ASCII, Types.StringASCII, out valueReadCount),
+                    (byte)Types.StringUTF8 => StringType.ReadFrom(valueBytes, Encoding.UTF8, Types.StringUTF8, out valueReadCount),
+                    (byte)Types.OptionalSome => new OptionalSome(FromBytes(valueBytes, out valueReadCount)),
+                    (byte)Types.PrincipalStandard => StandardPrincipal.ReadFrom(valueBytes, out valueReadCount),
+                    (byte)Types.PrincipalContract => ContractPrincipal.ReadFrom(valueBytes, out valueReadCount),
+                    (byte)Types.BoolTrue => new Boolean(true),
+                    (byte)Types.BoolFalse => new Boolean(false),
+                    (byte)Types.Tuple => Tuple.ReadFrom(valueBytes, out valueReadCount),
+                    (byte)Types.List => List.ReadFrom(valueBytes, out valueReadCount),
+                };
+
+                readCount = 1 + valueReadCount;
+
+                return result;
             }
 
-            static public Value FromHex(string hex) {
+            static public Value? FromHex(string hex) {
                 var bytes = hex.ToHexByteArray();
-                return FromBytes(bytes);
+                return FromBytes(bytes, out var _);
             }
         }
 
@@ -101,20 +108,106 @@ namespace StacksForce.Stacks
             public override string ToString() => _value.ToString();
         }
 
+        public class List : Value
+        {
+            private readonly Value[] _values;
+
+            public Value[] Values => _values;
+
+            public List(Value[] values) : base(Types.List)
+            {
+                _values = values;
+            }
+
+            static public List ReadFrom(ReadOnlySpan<byte> bytes, out ulong readCount)
+            {
+                var values = new List<Value>();
+
+                var len = BinaryPrimitives.ReadUInt32BigEndian(bytes);
+                int position = 4;
+                for (int i = 0; i < len; i++)
+                {
+                    Value? cv = Clarity.Value.FromBytes(bytes.Slice(position), out var byteCount);
+                    position += (int)byteCount;
+                    values.Add(cv);
+                }
+
+                readCount = (ulong)position;
+
+                return new List(values.ToArray());
+            }
+
+            public override void SerializeTo(BinaryWriter writer)
+            {
+                base.SerializeTo(writer);
+                writer.Write(ByteUtils.UInt32ToByteArrayBigEndian((uint)_values.Length));
+                for (int i = 0; i < _values.Length; i++)
+                    _values[i].SerializeTo(writer);
+            }
+
+            public override string ToString()
+            {
+                return $"[{string.Join<Value>(",", _values)}]";
+            }
+        }
+
         public class Tuple : Value
         {
             private readonly Dictionary<string, Value> _values;
+
+            public IReadOnlyDictionary<string, Value> Values => _values;
 
             public Tuple(Dictionary<string, Value> values) : base(Types.Tuple)
             {
                 _values = values;
             }
 
-            static public Tuple FromBytes(byte[] bytes)
+            static public Tuple ReadFrom(ReadOnlySpan<byte> bytes, out ulong readCount)
             {
-              //  var length = SerializationUtils.DeserializeUInt32BE(bytes.Slice(0, 4));
-                var content = bytes.Slice(4); // skip length
-                return null;
+                var dict = new Dictionary<string, Value>();
+
+                var len = BinaryPrimitives.ReadUInt32BigEndian(bytes);
+                int position = 4;
+                for (int i = 0; i < len; i++)
+                {
+                    var nameLen = bytes[position];
+                    position++;
+                    var name = Encoding.ASCII.GetString(bytes.Slice(position, nameLen));
+                    position += nameLen;
+                    Value? cv = Value.FromBytes(bytes.Slice(position), out var byteCount);
+                    position += (int) byteCount;
+                    dict.Add(name, cv);
+                }
+
+                readCount = (ulong) position;
+
+                return new Tuple(dict);
+            }
+
+            public override void SerializeTo(BinaryWriter writer)
+            {
+                base.SerializeTo(writer);
+                writer.Write(ByteUtils.UInt32ToByteArrayBigEndian((uint)_values.Count));
+                foreach (var keyAndValue in _values)
+                {
+                    writer.Write(SerializationUtils.SerializeLPString(keyAndValue.Key));
+                    keyAndValue.Value.SerializeTo(writer);
+                }
+            }
+
+            public override string ToString()
+            {
+                var sb = new StringBuilder();
+                sb.Append("{");
+                foreach (var keyAndValue in _values)
+                {
+                    sb.Append(keyAndValue.Key);
+                    sb.Append(": ");
+                    sb.Append(keyAndValue.Value.ToString());
+                    sb.Append(", ");
+                }
+                sb.Append("}");
+                return sb.ToString();
             }
         }
 
@@ -129,6 +222,12 @@ namespace StacksForce.Stacks
             public override string ToString()
             {
                 return $"({GetType().Name} {Value})";
+            }
+
+            public override void SerializeTo(BinaryWriter writer)
+            {
+                base.SerializeTo(writer);
+                Value.SerializeTo(writer);
             }
         }
 
@@ -149,47 +248,92 @@ namespace StacksForce.Stacks
 
         public class ByteBuffer : Value
         {
-            public byte[] bytes;
+            private readonly byte[] _bytes;
+
+            public byte[] Value => _bytes;
 
             public ByteBuffer(byte[] bytes) : base(Types.Buffer) {
-                this.bytes = bytes;
+                _bytes = bytes;
             }
 
             public ByteBuffer(string hexString) : base(Types.Buffer)
             {
-                this.bytes = ByteUtils.ToHexByteArray(hexString);
+                _bytes = ByteUtils.ToHexByteArray(hexString);
+            }
+
+            static public ByteBuffer ReadFrom(ReadOnlySpan<byte> bytes, out ulong readCount)
+            {
+                var len = BinaryPrimitives.ReadUInt32BigEndian(bytes);
+                readCount = 4 + len;
+                return new ByteBuffer(bytes.Slice(4, (int)len).ToArray());
             }
 
             public override void SerializeTo(BinaryWriter writer)
             {
                 base.SerializeTo(writer);
-                writer.Write(ByteUtils.UInt32ToByteArray((uint) bytes.Length));
-                writer.Write(bytes);
+                writer.Write(ByteUtils.UInt32ToByteArrayBigEndian((uint)_bytes.Length));
+                writer.Write(_bytes);
+            }
+
+            public override string ToString()
+            {
+                return "0x" + _bytes.ToHex();
             }
         }
 
         public class UInteger128 : Value
         {
-            public BigInteger value;
+            private BigInteger _value;
+
+            public BigInteger Value => _value;
 
             public UInteger128(ulong v) : base(Types.UInt)
             {
-                value = v;
+                _value = v;
             }
-            public UInteger128(byte[] v) : base(Types.UInt)
+
+            public UInteger128(ReadOnlySpan<byte> bytes) : base(Types.UInt)
             {
-                value = new BigInteger(v, true, true);
+                _value = new BigInteger(bytes, true, true);
             }
 
             public override void SerializeTo(BinaryWriter writer)
             {
                 base.SerializeTo(writer);
-                writer.Write(SerializationUtils.SerializeBigInteger(value));
+                writer.Write(SerializationUtils.SerializeBigUInteger(_value));
             }
 
             public override string ToString()
             {
-                return value.ToString();
+                return _value.ToString();
+            }
+        }
+
+        public class Integer128 : Value
+        {
+            private readonly BigInteger _value;
+
+            public BigInteger Value => _value;
+
+            public Integer128(long v) : base(Types.Int)
+            {
+                _value = v;
+            }
+            public Integer128(ReadOnlySpan<byte> bytes) : base(Types.Int)
+            {
+                _value = new BigInteger(bytes, false, true);
+            }
+
+            public override void SerializeTo(BinaryWriter writer)
+            {
+                base.SerializeTo(writer);
+
+                writer.Write(ByteUtils.Int128ToByteArrayBigEndian(_value));
+            }
+
+            public override string ToString()
+            {
+                return _value.ToString();
             }
         }
 
@@ -201,7 +345,7 @@ namespace StacksForce.Stacks
             {
                 if (address.Contains("."))
                 {
-                    var addressAndContract = address.Split('.');
+                    var addressAndContract = address.Split(".");
                     return new ContractPrincipal(addressAndContract[0], addressAndContract[1]);
                 }
 
@@ -212,6 +356,8 @@ namespace StacksForce.Stacks
         public class StandardPrincipal : Principal
         {
             private readonly string _address;
+
+            public string Address => _address;
 
             public StandardPrincipal(string address) : base(Types.PrincipalStandard)
             {
@@ -224,8 +370,9 @@ namespace StacksForce.Stacks
                 writer.Write(SerializationUtils.SerializeAddress(_address));
             }
 
-            static public StandardPrincipal? Deserialize(byte[] bytes)
+            static public StandardPrincipal? ReadFrom(ReadOnlySpan<byte> bytes, out ulong readCount)
             {
+                readCount = 21;
                 var address = SerializationUtils.DeserializeAddress(bytes.Slice(0, 21));
                 if (address == null)
                     return null;
@@ -240,6 +387,9 @@ namespace StacksForce.Stacks
             private readonly string _address;
             private readonly string _contract;
 
+            public string Address => _address;
+            public string Contract => _contract;
+
             public ContractPrincipal(string address, string contract) : base(Types.PrincipalContract)
             {
                 _address = address;
@@ -249,15 +399,16 @@ namespace StacksForce.Stacks
             {
                 base.SerializeTo(writer);
                 writer.Write(SerializationUtils.SerializeAddress(_address));
-                writer.Write(Encoding.ASCII.GetBytes(_contract));
+                writer.Write(SerializationUtils.SerializeLPString(_contract));
             }
 
-            static public ContractPrincipal? Deserialize(byte[] bytes)
+            static public ContractPrincipal? ReadFrom(ReadOnlySpan<byte> bytes, out ulong readCount)
             {
                 var address = SerializationUtils.DeserializeAddress(bytes.Slice(0, 21));
-                if (address == null)
-                    return null;
-                var contract = Encoding.ASCII.GetString(bytes.Slice(22));
+                var contractLen = bytes[21];
+                var contract = Encoding.ASCII.GetString(bytes.Slice(22, contractLen));
+                readCount = 22 + (ulong) contractLen;
+
                 return new ContractPrincipal(address, contract);
             }
 
@@ -266,16 +417,34 @@ namespace StacksForce.Stacks
 
         public class StringType : Value
         {
-            private string _str;
+            private readonly string _str;
+            public string Value => _str;
 
-            public string Str => _str;
-
-            public StringType(byte[] bytes, Encoding encoding, Types type) : base(Types.StringASCII)
+            public StringType(string str, Types type) : base(type)
             {
-                _str = encoding.GetString(bytes);
+                _str = str;
             }
 
             public override string ToString() => _str;
+
+            public static StringType ReadFrom(ReadOnlySpan<byte> bytes, Encoding enc, Types valueType, out ulong readCount)
+            {
+                var len = BinaryPrimitives.ReadUInt32BigEndian(bytes);
+                var str = enc.GetString(bytes.Slice(4, (int) len));
+                readCount = 4 + len;
+                return new StringType(str, valueType);
+            }
+
+            public override void SerializeTo(BinaryWriter writer)
+            {
+                base.SerializeTo(writer);
+
+                Encoding enc = _type == Types.StringASCII ? Encoding.ASCII : Encoding.UTF8;
+                var bytes = enc.GetBytes(_str);
+
+                writer.Write(ByteUtils.UInt32ToByteArrayBigEndian((uint)bytes.Length));
+                writer.Write(bytes);
+            }
         }
     }
 

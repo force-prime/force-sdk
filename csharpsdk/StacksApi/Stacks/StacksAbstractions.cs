@@ -244,7 +244,7 @@ namespace StacksForce.Stacks
                         if (uri.IsSuccess)
                         {
                             var uriStr = uri.Data.UnwrapUntil<Clarity.StringType>();
-                            var metaData = await NFTMetaData.FromUrl(uriStr.Str);
+                            var metaData = await NFTMetaData.FromUrl(uriStr.Value);
                             var description = metaData.Description;
                             if (string.IsNullOrEmpty(description))
                                 description = data.nft;

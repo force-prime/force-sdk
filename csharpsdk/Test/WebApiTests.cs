@@ -50,7 +50,7 @@ namespace StacksForceTest
 
             result = await Blockchains.Testnet.CallReadOnly("STVM45V862CRMC3CPE10ZBKRNMCT2Y7KWC20B4EQ", "test", "get-ascii", "ST213KNHB5QD308TEESY1ZMX1BP8EZDPG4HS6WJVZ");
             Assert.True(result.IsSuccess && result.Data.IsOk());
-            string data = result.Data.UnwrapUntil<Clarity.StringType>().Str;
+            string data = result.Data.UnwrapUntil<Clarity.StringType>().Value;
             Assert.Equal("abcd", data);
         }
 

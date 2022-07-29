@@ -1,4 +1,5 @@
 ﻿using StacksForce.Utils;
+using System;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -23,14 +24,14 @@ namespace StacksForce.Stacks
 
         static public byte[] SerializeLPString(string str, int lengthSizeBytes = 1)
         {
-            var prefix = ByteUtils.UInt64ToByteArray((ulong)str.Length, lengthSizeBytes);
+            var prefix = ByteUtils.UInt64ToByteArrayBigEndian((ulong)str.Length, lengthSizeBytes);
             var strBytes = Encoding.ASCII.GetBytes(str);
             return prefix.Concat(strBytes).ToArray();
         }
 
         static public void SerializeLPList(IBinarySerializable[] list, BinaryWriter writer)
         {
-            writer.Write(ByteUtils.UInt32ToByteArray((uint) list.Length));
+            writer.Write(ByteUtils.UInt32ToByteArrayBigEndian((uint) list.Length));
             foreach (var e in list)
                 e.SerializeTo(writer);
         }
@@ -45,7 +46,7 @@ namespace StacksForce.Stacks
             return value.ToByteArray(false, true).PadLeft(16);
         }
 
-        static public string? DeserializeAddress(byte[] bytes)
+        static public string? DeserializeAddress(ReadOnlySpan<byte> bytes)
         {
             if (bytes.Length != SERIALIZED_ADDRESS_LENGTH)
                 return null;
@@ -54,7 +55,7 @@ namespace StacksForce.Stacks
             if (addressVer == null)
                 return null;
 
-            return Address.AddressFromVersionHash(addressVer.Value, bytes.ToHex());
+            return Address.AddressFromVersionHash(addressVer.Value, bytes.Slice(1).ToHex());
         }
     }
 }
