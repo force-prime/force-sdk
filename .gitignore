@@ -3,6 +3,8 @@
 
 **/.vs/*
 
+.vscode
+
 *.user
 
 .idea
@@ -10,4 +12,4 @@
 
 Resource.designer.cs
 
-
+**/settings/*.toml
