@@ -16,7 +16,7 @@ namespace StacksForceTest
         public async void GetSTXBalanceIncorrectAccount()
         {
             var result = await Blockchains.Testnet.GetSTXBalance("ST213KNHB5QD308TPG4HS6WJVZ");
-            Assert.True(result.IsError && result.Error.Info.Contains("invalid STX address"));
+            Assert.True(result.IsError && result.Error.Id.Contains("invalid STX address"));
         }
 
         [Fact]

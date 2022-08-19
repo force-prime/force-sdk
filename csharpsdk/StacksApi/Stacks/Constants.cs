@@ -15,6 +15,12 @@
         LessEqual = 0x05,
     }
 
+    public enum NonFungibleConditionCode
+    {
+        DoesNotOwn = 0x10,
+        Owns = 0x11,
+    }
+
     public enum PayloadType
     {
         TokenTransfer = 0x00,
@@ -155,7 +161,7 @@
         DroppedStaleGarbageCollect,
         Success,
         AbortByResponse,
-        AbortByConditions,
+        AbortByPostCondition,
 
         Undefined,
     }

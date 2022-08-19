@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StacksForce", "StacksApi\StacksForce.csproj", "{F89CED22-F356-43ED-92EB-8F1865877B10}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StacksApi", "StacksApi\StacksApi.csproj", "{F89CED22-F356-43ED-92EB-8F1865877B10}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StacksForceTest", "Test\StacksForceTest.csproj", "{17E4E04F-2ADA-484F-9B45-B25D34C62FB4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Test\Tests.csproj", "{17E4E04F-2ADA-484F-9B45-B25D34C62FB4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChainAbstractions", "ChainAbstractions\ChainAbstractions.csproj", "{30DB4E5D-E2BB-495C-A3B8-7435023E0E43}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{17E4E04F-2ADA-484F-9B45-B25D34C62FB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17E4E04F-2ADA-484F-9B45-B25D34C62FB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17E4E04F-2ADA-484F-9B45-B25D34C62FB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30DB4E5D-E2BB-495C-A3B8-7435023E0E43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30DB4E5D-E2BB-495C-A3B8-7435023E0E43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30DB4E5D-E2BB-495C-A3B8-7435023E0E43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30DB4E5D-E2BB-495C-A3B8-7435023E0E43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -32,7 +32,7 @@ namespace StacksForce.Utils
         }
 
         public override string ToString() {
-            return _id + "\n" + _info;
+            return _id + Environment.NewLine + _info;
         }
     }
 

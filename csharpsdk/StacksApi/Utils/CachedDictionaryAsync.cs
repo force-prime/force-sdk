@@ -21,6 +21,20 @@ namespace StacksForce.Utils
             _dropCacheOnLoad = true;
         }
 
+        public bool GetIfContains(TKey id, out TValue value)
+        {
+            lock (_cachedData)
+            {
+                if (_cachedData.TryGetValue(id, out var data) && data.task == null)
+                {
+                    value = data.value;
+                    return true;
+                }
+            }
+            value = default;
+            return false;
+        }
+
         public async ValueTask<TValue> Get(TKey id, object additionalData = null)
         {
             Task<TValue> task;

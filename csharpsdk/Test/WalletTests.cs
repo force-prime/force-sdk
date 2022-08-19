@@ -62,12 +62,14 @@ namespace StacksForceTest
             const string expectedTestNetAddr = "ST384CVPNDTYA0E92TKJZQTYXQHNZSWGCAH0ER64E";
             const string expectedMainNetAddr = "SP384CVPNDTYA0E92TKJZQTYXQHNZSWGCAG7SAPVB";
             const string expectedSalt = "c15619adafe7e75a195a1a2b5788ca42e585a3fd181ae2ff009c6089de54ed9e";
+            const string expectedAppKey = "6f8b6a170f8b2ee57df5ead49b0f4c8acde05f9e1c4c6ef8223d6a42fabfa314";
 
             var w = new StacksWallet("sound idle panel often situate develop unit text design antenna vendor screen opinion balcony share trigger accuse scatter visa uniform brass update opinion media", "");
             Assert.Equal(w.Salt, expectedSalt);
 
             var account = w.GetAccount(0);
 
+            Assert.Equal(account.GetAppPrivateKey("https://banter.pub"), expectedAppKey);
             Assert.Equal(account.GetAddress(AddressVersion.TestnetSingleSig), expectedTestNetAddr);
             Assert.Equal(account.GetAddress(AddressVersion.MainnetSingleSig), expectedMainNetAddr);
         }

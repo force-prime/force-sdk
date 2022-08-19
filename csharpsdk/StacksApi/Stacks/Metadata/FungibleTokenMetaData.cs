@@ -35,9 +35,9 @@ namespace StacksForce.Stacks.Metadata
             }
         }
 
-        static public async Task<FungibleTokenMetaData> ForTokenContract(Blockchain chain, string tokenId)
+        static public async Task<FungibleTokenMetaData> ForTokenContract(Blockchain chain, string tokenContractId)
         {
-            var result = await chain.GetFungibleTokenMetadata(tokenId);
+            var result = await chain.GetFungibleTokenMetadata(tokenContractId).ConfigureAwait(false);
             if (result.IsSuccess)
             {
                 var d = result.Data;
@@ -45,7 +45,7 @@ namespace StacksForce.Stacks.Metadata
                 var description = d.description;
                 if (string.IsNullOrEmpty(imageUrl) && !string.IsNullOrEmpty(d.token_uri))
                 {
-                    var tokenDataFromFile = await HttpHelper.SendRequest(HttpHelper.GetHttpUrlFrom(d.token_uri));
+                    var tokenDataFromFile = await HttpHelper.SendRequest(HttpHelper.GetHttpUrlFrom(d.token_uri)).ConfigureAwait(false);
                     if (tokenDataFromFile.IsSuccess)
                     {
                         try

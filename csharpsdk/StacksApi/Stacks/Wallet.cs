@@ -86,5 +86,13 @@ namespace StacksForce.Stacks
         {
             return Address.AddressFromPublicKey(addressVersion, AddressHashMode.SerializeP2PKH, _publicKey);
         }
+
+        public string GetAppPrivateKey(string appDomain)
+        {
+            var hashBuffer = SigningUtils.Sha256(Encoding.ASCII.GetBytes(appDomain + _salt));
+            var appIndex = SigningUtils.GetStringHashCode(hashBuffer.ToHex());
+            var appKeychain = _appsKey.Derive(appIndex + StacksWallet.HARDENED_OFFSET);
+            return appKeychain.PrivateKey.ToHex();
+        }
     }
 }

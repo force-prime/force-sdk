@@ -6,8 +6,37 @@ namespace StacksForce.Stacks.WebApi
 {
     static public class Transactions
     {
+        // https://docs.hiro.so/api#tag/Transactions/operation/get_address_mempool_transactions
+        static public Task<AsyncCallResult<GetMempoolTransactionsResponse>> GetAddressMempoolTransactions(this Blockchain chain, string address, uint limit = 20, uint offset = 0)
+        {
+            string methodName = chain.Endpoint + $"extended/v1/address/{address}/mempool";
+
+            var requestData = new Dictionary<string, object?> {
+                { "limit", limit },
+                { "offset", offset },
+            };
+
+            return HttpAPIUtils.PerformHttpRequestJsonContent<GetMempoolTransactionsResponse>(methodName, requestData, null);
+        }
+
+        // https://docs.hiro.so/api#tag/Transactions/operation/get_mempool_transaction_list
+        static public Task<AsyncCallResult<GetMempoolTransactionsResponse>> GetMempoolTransactions(this Blockchain chain, string senderAddress, string? recepientAddress = null, string? address = null, uint limit = 20, uint offset = 0)
+        {
+            string methodName = chain.Endpoint + "extended/v1/tx/mempool";
+
+            var requestData = new Dictionary<string, object?> {
+                { "sender_address", senderAddress },
+                { "recipient_address", recepientAddress },
+                { "address", address },
+                { "limit", limit },
+                { "offset", offset },
+            };
+
+            return HttpAPIUtils.PerformHttpRequestJsonContent<GetMempoolTransactionsResponse>(methodName, requestData, null);
+        }
+
         // https://docs.hiro.so/api#tag/Transactions/operation/get_transaction_list
-        static public Task<AsyncCallResult<GetRecentTransactionsResponse>> GetRecentTransactions(this Blockchain chain, uint limit = 96, uint offset = 0, string[]? types = null, bool unanchored = false)
+        static public Task<AsyncCallResult<GetRecentTransactionsResponse>> GetRecentTransactions(this Blockchain chain, uint limit = 20, uint offset = 0, string[]? types = null, bool unanchored = false)
         {
             string methodName = chain.Endpoint + "extended/v1/tx";
 
@@ -30,11 +59,11 @@ namespace StacksForce.Stacks.WebApi
         }
 
         // https://docs.hiro.so/api#tag/Fees/operation/get_fee_transfer
-        static public Task<AsyncCallResult<GetStxTransferEstimatedFeeResponse>> GetStxTransferEstimatedFee(this Blockchain chain)
+        static public Task<AsyncCallResult<ulong>> GetStxTransferEstimatedFee(this Blockchain chain)
         {
             string methodName = chain.Endpoint + "v2/fees/transfer";
 
-            return HttpAPIUtils.PerformHttpRequest<GetStxTransferEstimatedFeeResponse>(methodName);
+            return HttpAPIUtils.PerformHttpRequest<ulong>(methodName);
         }
 
         //https://docs.hiro.so/api#tag/Fees/operation/post_fee_transaction
@@ -86,16 +115,24 @@ namespace StacksForce.Stacks.WebApi
                 public uint nonce;
                 public string tx_status;
                 public string tx_type;
+                public ulong fee_rate;
                 public bool is_unanchored;
+                public string sender_address;
                 public string microblock_hash;
                 public uint microblock_sequence;
                 public TokenTransfer token_transfer;
                 public ContractCall contract_call;
+                public SmartContract smart_contract;
                 public TxResult tx_result;
 
                 public class TxResult
                 {
                     public string hex;
+                }
+
+                public class SmartContract
+                {
+                    public string contract_id;
                 }
 
                 public class TokenTransfer {
@@ -161,6 +198,12 @@ namespace StacksForce.Stacks.WebApi
         public class GetRecentTransactionsResponse
         {
 
+        }
+
+        public class GetMempoolTransactionsResponse
+        {
+            public int total;
+            public GetTransactionDetailsReponse.Transaction[] results;
         }
     }
 }

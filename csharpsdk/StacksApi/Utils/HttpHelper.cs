@@ -127,12 +127,12 @@ namespace StacksForce.Utils
             public int GetRetryDelayMs(int tryCount, Error? lastError) => -1;
         }
 
-        public class NRetryStragegy : IRetryStrategy
+        public class NRetryStrategy : IRetryStrategy
         {
             private readonly int _tryCount;
             private readonly int _delayMs;
 
-            public NRetryStragegy(int tryCount, int delayMs)
+            public NRetryStrategy(int tryCount, int delayMs)
             {
                 _tryCount = tryCount;
                 _delayMs = delayMs;

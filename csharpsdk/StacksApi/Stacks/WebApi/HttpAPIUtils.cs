@@ -11,7 +11,7 @@ namespace StacksForce.Stacks.WebApi
 {
     public static class HttpAPIUtils
     {
-        private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpHelper.NRetryStragegy(0, 3000);
+        private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpHelper.NRetryStrategy(0, 3000);
 
         private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = new JsonSerializerOptions { IncludeFields = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
 
@@ -32,7 +32,7 @@ namespace StacksForce.Stacks.WebApi
             return PerformHttpRequest<T>(url, getFields, httpContent);
         }
 
-        static public async Task<AsyncCallResult<T>> PerformHttpRequest<T>(string url, Dictionary<string, object?>? getFields = null, HttpContent? content = null) where T : class
+        static public async Task<AsyncCallResult<T>> PerformHttpRequest<T>(string url, Dictionary<string, object?>? getFields = null, HttpContent? content = null) 
         {
             url = getFields == null ? url : HttpHelper.BuildUrl(url, getFields);
 
@@ -44,15 +44,25 @@ namespace StacksForce.Stacks.WebApi
                     try
                     {
                         var error = JsonSerializer.Deserialize<ErrorMessage>(httpError.Content, SERIALIZER_OPTIONS);
-                        return new AsyncCallResult<T>(new Error("httpError", error.error));
+                        return new AsyncCallResult<T>(new BadRequestError(error.error + "::" + error.reason, error.reason_data?.ToString()));
                     }
                     catch (Exception e) { }
                 }
                 return new AsyncCallResult<T>(result.Error!);
             }
 
+
             if (typeof(T) == typeof(string))
-                return new AsyncCallResult<T>((result.Data! as T)!);
+            {
+                object o = result.Data.Trim('"');
+                return new AsyncCallResult<T>((T) o);
+            }
+
+            if (typeof(T) == typeof(ulong))
+            {
+                object o = Convert.ToUInt64(result.Data);
+                return new AsyncCallResult<T>((T)o);
+            }
 
             try
             {
@@ -68,6 +78,8 @@ namespace StacksForce.Stacks.WebApi
         private class ErrorMessage
         {
             public string error;
+            public string reason;
+            public object reason_data;
         }
 
         public class JsonDataBase
@@ -76,6 +88,13 @@ namespace StacksForce.Stacks.WebApi
             {
                 var r = JsonSerializer.Serialize(this, GetType(), SERIALIZER_OPTIONS);
                 return r;
+            }
+        }
+
+        public class BadRequestError : Error
+        {
+            public BadRequestError(string id, string? info = null) : base(id, info)
+            {
             }
         }
     }

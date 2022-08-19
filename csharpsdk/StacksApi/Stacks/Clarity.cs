@@ -3,6 +3,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 
@@ -114,7 +115,7 @@ namespace StacksForce.Stacks
 
             public Value[] Values => _values;
 
-            public List(Value[] values) : base(Types.List)
+            public List(params Value[] values) : base(Types.List)
             {
                 _values = values;
             }
@@ -188,7 +189,8 @@ namespace StacksForce.Stacks
             {
                 base.SerializeTo(writer);
                 writer.Write(ByteUtils.UInt32ToByteArrayBigEndian((uint)_values.Count));
-                foreach (var keyAndValue in _values)
+
+                foreach (var keyAndValue in _values.OrderBy(x=>x.Key))
                 {
                     writer.Write(SerializationUtils.SerializeLPString(keyAndValue.Key));
                     keyAndValue.Value.SerializeTo(writer);
@@ -451,6 +453,9 @@ namespace StacksForce.Stacks
     public static class ClarityUtils
     {
         public static bool IsOk(this Clarity.Value value) => value is Clarity.Ok;
+        public static bool IsErr(this Clarity.Value value) => value is Clarity.Err;
+        public static bool IsNone(this Clarity.Value value) => value is Clarity.None;
+
         public static T? UnwrapUntil<T>(this Clarity.Value value) where T : Clarity.Value
         {
             if (value is T asT)

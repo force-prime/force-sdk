@@ -101,6 +101,14 @@ namespace StacksForce.Utils
             return Enumerable.Range(0, totalLen - bytes.Length).Select(x => padByte).Concat(bytes).ToArray();
         }
 
+        static public byte[] PadRight(this byte[] bytes, int totalLen, byte padByte = 0)
+        {
+            if (bytes.Length >= totalLen)
+                return bytes;
+
+            return bytes.Concat(Enumerable.Range(0, totalLen - bytes.Length).Select(x => padByte)).ToArray();
+        }
+
         static public string AsciiFromHex(string hexString)
         {
             return System.Text.Encoding.ASCII.GetString(hexString.ToHexByteArray());

@@ -68,5 +68,19 @@ namespace StacksForce.Stacks
             return hash;
         }
 
+        static public uint GetStringHashCode(string str)
+        {
+            uint hash = 0;
+            if (string.IsNullOrEmpty(str))
+                return hash;
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                var c = str[i];
+                hash = (hash << 5) - hash + c;
+            }
+            return hash & 0x7fffffff;
+        }
+
     }
 }
