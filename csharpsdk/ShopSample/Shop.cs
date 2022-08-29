@@ -1,17 +1,16 @@
-﻿using StacksForce.Stacks;
+﻿using ChainAbstractions;
+using ChainAbstractions.Stacks;
+using StacksForce.Stacks;
 using StacksForce.Stacks.ChainTransactions;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace ChainAbstractions.Stacks.ContractWrappers
+namespace ShopSample
 {
-    public class ShopV1
+    public class Shop
     {
         private readonly string _address;
         private readonly string _fullTokenId;
 
-        public ShopV1(string address, string fullTokenId)
+        public Shop(string address, string fullTokenId)
         {
             _address = address;
             _fullTokenId = fullTokenId; 
@@ -34,6 +33,16 @@ namespace ChainAbstractions.Stacks.ContractWrappers
         {
             var result = await m.ContractCall(_address, "auth", "set-admins",
                     new Clarity.List(admins.Select(x => Clarity.Principal.FromString(x)).ToArray())
+                ).ConfigureAwait(false);
+
+            return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
+        }
+
+        public async Task<ITransaction> Mint(TransactionsManager m, string recepient, ulong nftType)
+        {
+            var result = await m.ContractCall(_address, "basic-nft", "mint",
+                    Clarity.Principal.FromString(recepient),
+                    new Clarity.UInteger128(nftType)
                 ).ConfigureAwait(false);
 
             return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
