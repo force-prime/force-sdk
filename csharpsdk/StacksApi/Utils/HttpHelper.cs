@@ -21,8 +21,13 @@ namespace StacksForce.Utils
 
         static public string GetHttpUrlFrom(string url)
         {
+            const string prefix = "https://ipfs.io/ipfs/";
             if (url.StartsWith("ipfs://"))
-                return $"https://ipfs.io/ipfs/{url.Substring(7)}";
+            {
+                if (url.StartsWith("ipfs://ipfs/"))
+                    return $"{prefix}{url.Substring(12)}";
+                return $"{prefix}{url.Substring(7)}";
+            }
             return url;
         }
 
@@ -31,7 +36,7 @@ namespace StacksForce.Utils
             return baseUrl + ((getFieldList != null && getFieldList.Count > 0) ? "?" +
                 string.Join("&", getFieldList.Select(keyAndValue => (keyAndValue.Key, ObjectToGetField(keyAndValue.Value))).
                 Where(f => !string.IsNullOrEmpty(f.Item2)).Select(x => x.Key + "=" + System.Web.HttpUtility.UrlEncode(x.Item2))) 
-                : "");
+                : string.Empty);
         }
 
         static public async Task<AsyncCallResult<string>> SendRequest(string url, HttpContent? content = null, IRetryStrategy? retryStrategy = null) {

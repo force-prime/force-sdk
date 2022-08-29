@@ -40,5 +40,15 @@ namespace StacksForceTest
             Assert.True(uriResult.IsSuccess);
         }
 
+        [Fact]
+        public async void TestSIP09()
+        {
+            var sip09 = new SIP09UnsignedInteger("SP2KAF9RF86PVX3NEE27DFV1CQX0T4WGR41X3S45C", "magic-ape-school", "magic-ape-school");
+            var tokenUri = await sip09.GetTokenUri(1);
+            Assert.Equal("ipfs://QmfXpeb2dci371W4REDYMaRVVwoDx4BJmVzr9igsrbK62T/1.json", tokenUri.Data);
+
+            var ownerResult = await sip09.GetTokenOwner(1);
+            Assert.True(ownerResult.IsSuccess);
+        }
     }
 }

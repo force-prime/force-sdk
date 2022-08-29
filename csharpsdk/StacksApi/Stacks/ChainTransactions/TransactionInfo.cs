@@ -134,7 +134,7 @@ namespace StacksForce.Stacks.ChainTransactions
             UpdateStatus(status);
         }
 
-        private void UpdateStatus(TransactionStatus newStatus)
+        internal void UpdateStatus(TransactionStatus newStatus)
         {
             if (Status == newStatus)
                 return;

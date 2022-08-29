@@ -4,18 +4,18 @@ using System.Threading.Tasks;
 
 namespace ChainAbstractions
 {
-    public interface IBasicWalletInfo
+    public interface IWalletInfo
     {
-        Task<IFungibleToken> GetToken(string currency);
+        Task<IFungibleToken?> GetToken(string tokenId);
 
         Task<List<IFungibleToken>> GetAllTokens();
 
-        IDataStream<INFT> GetNFTs(string nftType);
+        IDataStream<INFT> GetNFTs(string? nftType = null, bool readMetaData = true);
 
         public string GetAddress();
     }
 
-    public interface IBasicWallet : IBasicWalletInfo
+    public interface IBasicWallet : IWalletInfo
     {
         public string GetMnemonic();
         public Task<ITransaction> Transfer(IFungibleToken token, string recepient, string? memo = null);
@@ -65,6 +65,6 @@ namespace ChainAbstractions
     {
         IBasicWallet CreateNewWallet();
         IBasicWallet GetWalletForMnemonic(string mnemonic);
-        IBasicWalletInfo? GetWalletInfoForAddress(string address);   
+        IWalletInfo GetWalletInfoForAddress(string address);   
     }
 }

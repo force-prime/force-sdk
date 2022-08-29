@@ -19,10 +19,10 @@ namespace StacksForce.Utils
 
         public event Action<string, object>? OnNotificationRaw;
 
-        protected string CreateRequest(string method, object parameters)
+        protected string CreateRequest(string method, object parameters, out Request request)
         {
             var id = Interlocked.Increment(ref _requestId);
-            var request = new Request(id, method, parameters);
+            request = new Request(id, method, parameters);
             var serializedRequest = JsonSerializer.Serialize(request, SERIALIZER_OPTIONS);
             _pendingRequests.TryAdd(id, request);
             return serializedRequest;
@@ -90,7 +90,7 @@ namespace StacksForce.Utils
             public Error? error;
             public object? result;
             public string method;
-            public object? @params;
+            public JsonElement? @params;
 
             public class Error
             {

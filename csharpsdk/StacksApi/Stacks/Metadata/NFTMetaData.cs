@@ -34,15 +34,12 @@ namespace StacksForce.Stacks.Metadata
 
         static public async Task<NFTMetaData> FromUrl(string url)
         {
-            string? data = null;
             url = HttpHelper.GetHttpUrlFrom(url);
-            var r = await HttpHelper.SendRequest(url);
+            var r = await HttpHelper.SendRequest(url).ConfigureAwait(false);
             if (r.IsSuccess)
-                data = r.Data;
+                return FromJson(r.Data);
             else
                 return Empty;
-
-            return FromJson(data);
         }
 
         private class JsonFormat
@@ -51,7 +48,6 @@ namespace StacksForce.Stacks.Metadata
             public string image;
             public string description;
             public string collection;
-            public object[] attributes;
             public Properties properties;
             public class Properties
             {

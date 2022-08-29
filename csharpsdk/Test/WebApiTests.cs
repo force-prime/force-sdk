@@ -61,12 +61,27 @@ namespace StacksForceTest
             Assert.True(result.IsError && result.Error.Info.Contains("UndefinedFunction"));
         }
 
-
         [Fact]
         public async void GetRecentTransactions()
         {
             var result = await Blockchains.Testnet.GetRecentTransactions();
             Assert.True(result.IsSuccess);
+        }
+
+        [Fact]
+        public async void ReadonlyGet()
+        {
+            var result = await WebApiHelpers.ReadonlyGetString(Blockchains.Mainnet, "SP2P6KSAJ4JVV8PFSNKJ9BNG5PEPR4RT71VXZHWBK", "forcecoin", "get-symbol");
+            Assert.True(result.IsSuccess);
+            Assert.Equal("FORCE", result.Data);
+
+            result = await WebApiHelpers.ReadonlyGetString(Blockchains.Mainnet, "SP2P6KSAJ4JVV8PFSNKJ9BNG5PEPR4RT71VXZHWBK", "forcecoin", "get-decimals");
+            Assert.True(result.IsSuccess);
+            Assert.Equal(null, result.Data);
+
+            var result2 = await WebApiHelpers.ReadonlyGetUlong(Blockchains.Mainnet, "SP2P6KSAJ4JVV8PFSNKJ9BNG5PEPR4RT71VXZHWBK", "forcecoin", "get-decimals");
+            Assert.True(result.IsSuccess);
+            Assert.Equal(2, result2.Data);
         }
     }
 }

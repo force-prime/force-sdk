@@ -294,6 +294,11 @@ namespace StacksForce.Stacks
                 _value = v;
             }
 
+            public UInteger128(BigInteger value) : base(Types.UInt)
+            {
+                _value = value;
+            }
+
             public UInteger128(ReadOnlySpan<byte> bytes) : base(Types.UInt)
             {
                 _value = new BigInteger(bytes, true, true);

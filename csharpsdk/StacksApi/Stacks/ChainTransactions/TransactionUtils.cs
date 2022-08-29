@@ -49,7 +49,7 @@ namespace StacksForce.Stacks.ChainTransactions
             return fee;
         }
 
-        static public async Task<AsyncCallResult<List<TransferTransactionInfo>>> GetIncomingStxTransaction(Blockchain chain, string address)
+        static public async Task<AsyncCallResult<List<TransferTransactionInfo>>> GetIncomingStxTransactions(Blockchain chain, string address)
         {
             var result = await chain.GetAddressMempoolTransactions(address).ConfigureAwait(false);
             if (result.IsError)

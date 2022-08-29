@@ -7,7 +7,12 @@ namespace StacksForce.Utils
     {
         public enum Severity { Debug = 0, Info = 1, Warning = 2, Fatal = 4 };
 
-        static public event Action<string, Severity> LogMethod = (m, s) => { Console.WriteLine($"{s}: {m}"); };
+        static public event Action<string, Severity> LogMethod = (m, s) => {
+#if DEBUG
+            if (s >= Severity.Warning)
+                Console.WriteLine($"{s}: {m}");
+#endif
+        };
 
         static public Action<string, Severity> NoListenersHandler { get; set; } = DefaultNoListenersHandler;
 

@@ -37,6 +37,10 @@ namespace StacksForce.Stacks.Metadata
 
         static public async Task<FungibleTokenMetaData> ForTokenContract(Blockchain chain, string tokenContractId)
         {
+            var addressAndContract = tokenContractId.Split(".");
+            if (addressAndContract.Length != 2)
+                throw new ArgumentException("Incorrect token contract id");
+
             var result = await chain.GetFungibleTokenMetadata(tokenContractId).ConfigureAwait(false);
             if (result.IsSuccess)
             {
@@ -51,17 +55,34 @@ namespace StacksForce.Stacks.Metadata
                         try
                         {
                             var file = JsonSerializer.Deserialize<MetaDataFile>(tokenDataFromFile.Data, SERIALIZER_OPTIONS);
-                            if (file.properties.TryGetValue("image", out var imageObj))
-                                imageUrl = imageObj.description;
-                            if (file.properties.TryGetValue("description", out var descrObj))
-                                description = descrObj.description;
+                            if (file != null)
+                            {
+                                description = file.description;
+                                imageUrl = file.image;
+
+                                if (file.properties != null) {
+                                    if (string.IsNullOrEmpty(imageUrl) && file.properties.TryGetValue("image", out var imageObj))
+                                        imageUrl = imageObj.description;
+                                    if (string.IsNullOrEmpty(description) && file.properties.TryGetValue("description", out var descrObj))
+                                        description = descrObj.description;
+                                }
+                            }
                         } catch (Exception e)
                         {
-                            Log.Debug("FungibleTokenMetaData.ForTokenContract: e");
+                            Log.Debug("FungibleTokenMetaData.ForTokenContract: " + e);
                         }
                     }
                 }
                 return new FungibleTokenMetaData { Currency = d.symbol, Name = d.name, Description = description, Image = imageUrl, Decimals = d.decimals };
+            } else
+            {
+                var symbolResult = await chain.ReadonlyGetString(addressAndContract[0], addressAndContract[1], "get-symbol").ConfigureAwait(false);
+                if (symbolResult.IsSuccess && !string.IsNullOrEmpty(symbolResult.Data))
+                {
+                    var nameResult = await chain.ReadonlyGetString(addressAndContract[0], addressAndContract[1], "get-name").ConfigureAwait(false);
+                    var decimalsResult = await chain.ReadonlyGetUlong(addressAndContract[0], addressAndContract[1], "get-decimals").ConfigureAwait(false);
+                    return new FungibleTokenMetaData { Currency = symbolResult.Data, Name = nameResult.Data, Decimals = decimalsResult.IsSuccess ? (uint) decimalsResult.Data : 0 };
+                }
             }
             return Empty;
         }
@@ -70,7 +91,7 @@ namespace StacksForce.Stacks.Metadata
         {
             string? data = null;
             url = HttpHelper.GetHttpUrlFrom(url);
-            var r = await HttpHelper.SendRequest(url);
+            var r = await HttpHelper.SendRequest(url).ConfigureAwait(false);
             if (r.IsSuccess)
                 data = r.Data;
             return FromJson(data);
@@ -78,7 +99,7 @@ namespace StacksForce.Stacks.Metadata
 
         public override string ToString()
         {
-            return $"Fungible token: {Name} {Description} {Image}";
+            return $"Fungible token: {Name}({Description}) {Image}";
         }
 
         private class JsonFormat
@@ -96,6 +117,11 @@ namespace StacksForce.Stacks.Metadata
         private class MetaDataFile
         {
             public Dictionary<string, PropObj> properties;
+
+            public string name;
+            public string description;
+            public string image;
+
             public class PropObj
             {
                 public string type;

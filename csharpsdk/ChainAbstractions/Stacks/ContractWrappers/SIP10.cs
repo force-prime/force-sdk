@@ -1,12 +1,13 @@
 ﻿using System.Text;
 using System.Threading.Tasks;
+using StacksForce.Stacks.WebApi;
 using StacksForce.Stacks;
 using StacksForce.Stacks.ChainTransactions;
-using StacksForce.Stacks.WebApi;
 using StacksForce.Utils;
 
 namespace ChainAbstractions.Stacks.ContractWrappers
 {
+    // https://github.com/stacksgov/sips/blob/main/sips/sip-010/sip-010-fungible-token-standard.md
     public class SIP10
     {
         private readonly string _address;
@@ -49,49 +50,29 @@ namespace ChainAbstractions.Stacks.ContractWrappers
 
         public Task<ITransaction> Transfer(IBasicWallet caller, ulong amount, string sender, string recepient, string? memo = null) =>
             Transfer(_address, _contract, _token, caller, amount, sender, recepient, memo);
-     
-        public async Task<AsyncCallResult<string>> GetName()
-        {
-            var chain = StacksAbstractions.FromAddress(_address);
 
-            var result = await chain.AsStacksBlockchain().CallReadOnly(_address, _contract, "get-name", _address).ConfigureAwait(false);
-            if (result.IsError)
-                return new AsyncCallResult<string>(result.Error);
+        public Task<AsyncCallResult<string?>> GetName() => GetString("get-name");
 
-            return new AsyncCallResult<string>(result.Data.UnwrapUntil<Clarity.StringType>().Value);
-        }
-
-        public async Task<AsyncCallResult<string>> GetSymbol()
-        {
-            var chain = StacksAbstractions.FromAddress(_address);
-
-            var result = await chain.AsStacksBlockchain().CallReadOnly(_address, _contract, "get-symbol", _address).ConfigureAwait(false);
-            if (result.IsError)
-                return new AsyncCallResult<string>(result.Error);
-
-            return new AsyncCallResult<string>(result.Data.UnwrapUntil<Clarity.StringType>().Value);
-        }
+        public Task<AsyncCallResult<string?>> GetSymbol() => GetString("get-symbol");
 
         public async Task<AsyncCallResult<uint>> GetDecimals()
         {
             var chain = StacksAbstractions.FromAddress(_address);
 
-            var result = await chain.AsStacksBlockchain().CallReadOnly(_address, _contract, "get-decimals", _address).ConfigureAwait(false);
-            if (result.IsError)
-                return new AsyncCallResult<uint>(result.Error);
+            var result = await WebApiHelpers.ReadonlyGetUlong(chain.AsStacksBlockchain(), _address, _contract, "get-decimals").ConfigureAwait(false);
 
-            return new AsyncCallResult<uint>((uint) result.Data.UnwrapUntil<Clarity.UInteger128>().Value);
+            if (result.IsError)
+                return new AsyncCallResult<uint>(result.Error!);
+
+            return new AsyncCallResult<uint>((uint) result.Data!.Value);
         }
 
-        public async Task<AsyncCallResult<string>> GetTokenUri()
+        public Task<AsyncCallResult<string?>> GetTokenUri() => GetString("get-token-uri");
+
+        private Task<AsyncCallResult<string?>> GetString(string method)
         {
             var chain = StacksAbstractions.FromAddress(_address);
-
-            var result = await chain.AsStacksBlockchain().CallReadOnly(_address, _contract, "get-token-uri", _address).ConfigureAwait(false);
-            if (result.IsError)
-                return new AsyncCallResult<string>(result.Error);
-
-            return new AsyncCallResult<string>(result.Data.UnwrapUntil<Clarity.StringType>().Value);
+            return WebApiHelpers.ReadonlyGetString(chain.AsStacksBlockchain(), _address, _contract, method);
         }
     }
 }

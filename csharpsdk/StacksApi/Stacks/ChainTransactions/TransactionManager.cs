@@ -11,7 +11,6 @@ namespace StacksForce.Stacks.ChainTransactions
         public Blockchain Chain { get; }
         public StacksAccount Sender { get; }
 
-
         private readonly Dictionary<string, Transaction> _id2Transaction = new Dictionary<string, Transaction>();
         private readonly Dictionary<string, TransactionInfo> _id2Info = new Dictionary<string, TransactionInfo>();
 
@@ -82,7 +81,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
             t.UpdateFeeAndNonce(newFee, t.Nonce);
 
-            return await Run(t);
+            return await Run(t).ConfigureAwait(false);
         }
 
         public async Task<AsyncCallResult<TransactionInfo>> Run(Transaction transaction)
@@ -103,6 +102,8 @@ namespace StacksForce.Stacks.ChainTransactions
             }
             
             var pending = TransactionInfo.GetPending(Chain, transaction.TransactionType, txId)!;
+            Chain.GetTransactionMonitor().WatchTransaction(pending);
+
             lock (_id2Info)
             {
                 _id2Transaction.Add(txId, transaction);

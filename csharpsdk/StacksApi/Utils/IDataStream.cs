@@ -25,7 +25,10 @@ namespace StacksForce.Utils
         public async Task<List<T>?> ReadMoreAsync(int count)
         {
             if (Interlocked.Exchange(ref _inRead, 1) != 0)
+            {
+                Log.Fatal("ReadMoreAsync: incorrect read state");
                 throw new InvalidOperationException();
+            }
 
             if (!_prepared)
             {
