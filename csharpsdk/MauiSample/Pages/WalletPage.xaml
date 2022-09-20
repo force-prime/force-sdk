@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiSample.Pages.WalletPage"
+             Title="Wallet">
+
+    <VerticalStackLayout>
+        <StackLayout Padding="10">
+            <Frame IsClippedToBounds="True" CornerRadius="5" Padding="0" VerticalOptions="Start">
+                <Image VerticalOptions="Start" HorizontalOptions="Center" Source="sflogo.png" HeightRequest="180" Aspect="AspectFill"/>
+            </Frame>
+            <StackLayout IsVisible="{Binding HasWallet, Converter={StaticResource InvertedBoolConverter}}">
+                <Button VerticalOptions="Center" Text="New Wallet" Margin="0, 10" Clicked="NewWalletClicked"/>
+                <Button VerticalOptions="Center" Text="Restore Wallet" Margin="0, 10" Clicked="RestoreWalletClicked"/>
+                <Editor x:Name="mnemonicEditor" Keyboard="Text" Placeholder="Enter mnemonic phrase to restore your wallet..."/>
+            </StackLayout>
+            <Frame Padding="4" BorderColor="Black" CornerRadius="2" IsVisible="{Binding HasWallet}">
+                <StackLayout>
+                    <Label x:Name="addressTitleLabel" Text="Address:" TextColor="Black"/>
+                    <Label x:Name="addressLabel" Text="{Binding Address}" TextColor="Black" FontAttributes="Bold" TextDecorations="Underline"/>
+                    <Label x:Name="balanceTitleLabel" Text="Balance:" TextColor="Black"/>
+                    <Label x:Name="balanceLabel" Text="{Binding Balance}" TextColor="Black" FontAttributes="Bold"/>
+                </StackLayout>
+            </Frame>
+        </StackLayout>
+    </VerticalStackLayout>
+</ContentPage>

@@ -15,6 +15,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShopSample", "ShopSample\Sh
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShortDemos", "ShortDemos\ShortDemos.csproj", "{AE7E2A92-98D1-4FD9-B1D7-EF678895727E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CliTools", "CliTools\CliTools.csproj", "{5A551C00-B5B6-48C3-B207-BE116132DD3C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MauiSample", "MauiSample\MauiSample.csproj", "{B8BC0519-A658-4A1B-8B21-A204EF37DC5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +45,16 @@ Global
 		{AE7E2A92-98D1-4FD9-B1D7-EF678895727E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE7E2A92-98D1-4FD9-B1D7-EF678895727E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE7E2A92-98D1-4FD9-B1D7-EF678895727E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A551C00-B5B6-48C3-B207-BE116132DD3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A551C00-B5B6-48C3-B207-BE116132DD3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A551C00-B5B6-48C3-B207-BE116132DD3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A551C00-B5B6-48C3-B207-BE116132DD3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8BC0519-A658-4A1B-8B21-A204EF37DC5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8BC0519-A658-4A1B-8B21-A204EF37DC5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8BC0519-A658-4A1B-8B21-A204EF37DC5D}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{B8BC0519-A658-4A1B-8B21-A204EF37DC5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8BC0519-A658-4A1B-8B21-A204EF37DC5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8BC0519-A658-4A1B-8B21-A204EF37DC5D}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +62,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{28BDE9CB-1FF7-405E-84A6-B99ED7711411} = {C0F14FF5-2DB2-4C3F-AE1F-C600E91F205C}
 		{AE7E2A92-98D1-4FD9-B1D7-EF678895727E} = {C0F14FF5-2DB2-4C3F-AE1F-C600E91F205C}
+		{5A551C00-B5B6-48C3-B207-BE116132DD3C} = {C0F14FF5-2DB2-4C3F-AE1F-C600E91F205C}
+		{B8BC0519-A658-4A1B-8B21-A204EF37DC5D} = {C0F14FF5-2DB2-4C3F-AE1F-C600E91F205C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {664FA1B0-AFAA-4C60-9F99-BFD116858E1D}
