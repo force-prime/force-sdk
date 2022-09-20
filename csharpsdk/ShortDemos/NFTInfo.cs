@@ -24,9 +24,10 @@ namespace ShortDemos
 
         static public async Task Demo()
         {
-            await GetNFTData("SP213KNHB5QD308TEESY1ZMX1BP8EZDPG4JWD0MEA.web4::digital-land", 1);
-            await GetNFTData("SP213KNHB5QD308TEESY1ZMX1BP8EZDPG4JWD0MEA.web4::digital-land", 2);
-            await GetNFTData("SP213KNHB5QD308TEESY1ZMX1BP8EZDPG4JWD0MEA.web4::digital-land", 30);
+            var tokenType = "SP213KNHB5QD308TEESY1ZMX1BP8EZDPG4JWD0MEA.web4::digital-land";
+            await GetNFTData(tokenType, 1);
+            await GetNFTData(tokenType, 2);
+            await GetNFTData(tokenType, 30);
         }
     }
 }
