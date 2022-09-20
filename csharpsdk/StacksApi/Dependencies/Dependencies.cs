@@ -2,7 +2,7 @@
 {
     public interface IBIP39
     {
-        string MnemonicToSeedHex(string mnemonic, string password);
+        string? MnemonicToSeedHex(string mnemonic, string password);
         string GenerateMnemonicPhrase();
     }
 

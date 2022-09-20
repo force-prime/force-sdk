@@ -3,6 +3,7 @@ using NBitcoin;
 using Org.BouncyCastle.Crypto.Digests;
 using StacksForce.Dependencies;
 using StacksForce.Utils;
+using System;
 using System.Linq;
 using System.Security.Cryptography;
 
@@ -104,9 +105,17 @@ namespace StacksForce.Stacks
                 return new Mnemonic(Wordlist.English, WordCount.TwentyFour).ToString();
             }
 
-            public string MnemonicToSeedHex(string mnemonic, string password)
+            public string? MnemonicToSeedHex(string mnemonic, string password)
             {
-                return new Mnemonic(mnemonic).DeriveSeed(password).ToHex();
+                try
+                {
+                    var m = new Mnemonic(mnemonic);
+                    return m.DeriveSeed(password).ToHex();
+                } catch (Exception e)
+                {
+                    Log.Trace("MnemonicToSeedHex: " + e.ToString());
+                }
+                return null;
             }
         }
 

@@ -6,6 +6,9 @@ namespace StacksForce.Stacks
     {
         public static (string hash160, AddressVersion version)? FromC32(string c32AddressString)
         {
+            if (string.IsNullOrEmpty(c32AddressString))
+                return null;
+
             var address = C32.AddressDecode(c32AddressString);
             if (!address.HasValue)
                 return null;

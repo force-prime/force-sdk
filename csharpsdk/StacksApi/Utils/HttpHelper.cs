@@ -31,12 +31,31 @@ namespace StacksForce.Utils
             return url;
         }
 
-        static public string BuildUrl<T>(string baseUrl, IDictionary<string, T> getFieldList)
+
+        static public string BuildUrl(string baseUrl, List<(string name, string value)> getFieldList)
         {
             return baseUrl + ((getFieldList != null && getFieldList.Count > 0) ? "?" +
-                string.Join("&", getFieldList.Select(keyAndValue => (keyAndValue.Key, ObjectToGetField(keyAndValue.Value))).
-                Where(f => !string.IsNullOrEmpty(f.Item2)).Select(x => x.Key + "=" + System.Web.HttpUtility.UrlEncode(x.Item2))) 
+                string.Join("&", getFieldList.Where(f => !string.IsNullOrEmpty(f.value)).Select(
+                            x => x.name + "=" + System.Web.HttpUtility.UrlEncode(x.value)))
                 : string.Empty);
+        }
+
+        static public string BuildUrl<T>(string baseUrl, IDictionary<string, T> getFieldList) {
+            List<(string name, string value)> urlParams = new List<(string name, string value)>();
+            foreach (var kv in getFieldList)
+            {
+                if (kv.Value is IEnumerable en && (!(kv.Value is string)))
+                {
+                    foreach (var v in en)
+                    {
+                        urlParams.Add((kv.Key, v?.ToString()));
+                    }
+                } else
+                {
+                    urlParams.Add((kv.Key, kv.Value?.ToString()));
+                }
+            }
+            return BuildUrl(baseUrl, urlParams);
         }
 
         static public async Task<AsyncCallResult<string>> SendRequest(string url, HttpContent? content = null, IRetryStrategy? retryStrategy = null) {
@@ -94,28 +113,6 @@ namespace StacksForce.Utils
             }
 
             return new AsyncCallResult<string>(lastError!);
-        }
-
-        static private string? ArrayToGetField(string[]? array) => array != null ? $"{string.Join(",", array)}" : null;
-
-        static private string? ObjectToGetField(object? obj)
-        {
-            if (obj is string str)
-                return str;
-
-            if (obj is IEnumerable enumerable)
-            {
-                List<string> items = new List<string>();
-                foreach (var element in enumerable)
-                {
-                    var s = element?.ToString();
-                    if (!string.IsNullOrEmpty(s))
-                        items.Add(s);
-                }
-                return ArrayToGetField(items.ToArray());
-            }
-
-            return obj?.ToString();
         }
 
         static private HttpClient CreateHttpClient()

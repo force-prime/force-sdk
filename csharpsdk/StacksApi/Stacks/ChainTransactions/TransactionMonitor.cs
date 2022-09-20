@@ -21,7 +21,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public void WatchTransaction(TransactionInfo transactionInfo)
         {
-            _ws.Connect();
+            _ws.Connect(false);
 
             if (_id2Info.TryAdd(transactionInfo.TxId, transactionInfo))
                 _ws.SubsribeToTransactionUpdate(transactionInfo.TxId);

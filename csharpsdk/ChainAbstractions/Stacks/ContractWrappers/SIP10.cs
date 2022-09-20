@@ -33,7 +33,9 @@ namespace ChainAbstractions.Stacks.ContractWrappers
 
             Clarity.Value memoValue = bytes == null ? (Clarity.Value)new Clarity.None() : new Clarity.ByteBuffer(bytes);
 
-            var result = await caller.GetTransactionManager().ContractCall(address, contract, "transfer",
+            var manager = caller.GetTransactionManager();
+
+            var transaction = await manager.GetContractCall(address, contract, "transfer",
                 new Clarity.Value[] {
                     new Clarity.UInteger128(amount),
                     Clarity.Principal.FromString(sender),
@@ -45,7 +47,7 @@ namespace ChainAbstractions.Stacks.ContractWrappers
                     new FungibleTokenPostCondition(sender, new AssetInfo(address, contract, token), FungibleConditionCode.Equal, amount),
                 }).ConfigureAwait(false);
 
-            return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
+            return new StacksAbstractions.TransactionWrapper(manager, transaction);
         }
 
         public Task<ITransaction> Transfer(IBasicWallet caller, ulong amount, string sender, string recepient, string? memo = null) =>

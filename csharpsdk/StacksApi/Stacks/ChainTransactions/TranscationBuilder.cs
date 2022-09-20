@@ -11,7 +11,7 @@
 
         }
 
-        public static Transaction ContractCall(Blockchain blockchain, StacksAccount sender, string address, string contract, string method, Clarity.Value[] arguments, PostCondition[]? postConditions = null, uint fee = 0, uint nonce = 0)
+        public static Transaction ContractCall(Blockchain blockchain, StacksAccount sender, string address, string contract, string method, Clarity.Value[]? arguments, PostCondition[]? postConditions = null, uint fee = 0, uint nonce = 0)
         {
             var payload = new ContractCallPayload(address, contract, method, arguments);
 

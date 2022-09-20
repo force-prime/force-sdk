@@ -98,24 +98,27 @@ namespace ChainAbstractions.Stacks
                 return BasicWalletImpl.CreateNew(_blockchain);
             }
 
-            public IBasicWallet GetWalletForMnemonic(string mnemonic)
+            public IBasicWallet? GetWalletForMnemonic(string mnemonic)
             {
                 return BasicWalletImpl.FromMnemonic(_blockchain, mnemonic);
             }
 
-            public IWalletInfo GetWalletInfoForAddress(string address)
+            public IWalletInfo? GetWalletInfoForAddress(string address)
             {
+                if (string.IsNullOrEmpty(address))
+                    return null;
+
                 if (address.Contains("."))
                 {
                     var addressAndContract = address.Split('.');
                     if (addressAndContract.Length != 2)
-                        throw new ArgumentException("Incorrect address");
+                        return null;
                 }
                 else
                 {
                     var a = Address.FromC32(address);
                     if (a == null)
-                        throw new ArgumentException("Incorrect address");
+                        return null;
                 }
 
                 return new BasicWalletInfo(_blockchain, address);
@@ -137,14 +140,23 @@ namespace ChainAbstractions.Stacks
             internal readonly StacksWallet _wallet;
             internal readonly TransactionsManager _manager;
 
-            static public BasicWalletImpl FromMnemonic(Blockchain chain, string mnemonic)
+            static public BasicWalletImpl? FromMnemonic(Blockchain chain, string mnemonic)
             {
-                return new BasicWalletImpl(chain, new StacksWallet(mnemonic));
+                if (string.IsNullOrEmpty(mnemonic))
+                    return null;
+                try
+                {
+                    var wallet = new StacksWallet(mnemonic);
+                    return new BasicWalletImpl(chain, wallet);
+                } catch (Exception e)
+                {
+                    return null;
+                }                
             }
 
             static public IBasicWallet CreateNew(Blockchain chain)
             {
-                return FromMnemonic(chain, StacksWallet.GenerateMnemonicPhrase());
+                return FromMnemonic(chain, StacksWallet.GenerateMnemonicPhrase())!;
             }
 
             public BasicWalletImpl(Blockchain chain, StacksWallet wallet) : base(chain, wallet.GetAccount(0).GetAddress(chain.GetAddressVersion()))
@@ -155,12 +167,16 @@ namespace ChainAbstractions.Stacks
 
             public string GetMnemonic() => _wallet.Mnemonic;
 
-            public async Task<ITransaction> Transfer(IFungibleToken token, string recepient, string? memo = null)
+            public async Task<ITransaction> GetTransferTransaction(IFungibleToken token, string recepient, string? memo = null)
             {
+                if (Address.FromC32(recepient) == null)
+                {
+                    return new TransactionWrapper(null, new Error("Incorrect recepient"));
+                }
                 if (token.Data.Code == Stx.Code)
                 {
-                    var info = await _manager.StxTransfer(recepient, token.Balance, memo).ConfigureAwait(false);
-                    return new TransactionInfoWrapper(info.Data, info.Error);
+                    var result = await _manager.GetStxTransfer(recepient, token.Balance, memo).ConfigureAwait(false);
+                    return new TransactionWrapper(_manager, result);
                 }
                 else
                 {
@@ -170,20 +186,31 @@ namespace ChainAbstractions.Stacks
             }
         }
 
-        public sealed class TransactionInfoWrapper : ITransaction
+        public sealed class TransactionWrapper : ITransaction
         {
             public TransactionState State { get { UpdateState(); return _state; } }
 
             public Error? Error { get { UpdateState(); return _error; } }
 
-            private TransactionState _state;
-            private Error? _error;
-            private TransactionInfo _info;
+            public IFungibleToken? Cost => _transaction != null && _transaction.Fee > 0 ? new FungibleToken(_transaction.Fee, Stx as FungibleTokenData) : null;
 
-            public TransactionInfoWrapper(TransactionInfo info, Error? error)
+            private TransactionState _state = TransactionState.Unknown;
+            private Error? _error;
+            internal TransactionInfo? _info;
+            internal Transaction? _transaction;
+            private TransactionsManager? _manager;
+
+            public TransactionWrapper(TransactionInfo? info, Error? error)
             {
                 _info = info;
                 _error = error;
+            }
+
+            public TransactionWrapper(TransactionsManager manager, AsyncCallResult<Transaction> transactionResult)
+            {
+                _manager = manager;
+                _transaction = transactionResult.Data;
+                _error = transactionResult.Error;
             }
 
             private void UpdateState()
@@ -191,6 +218,12 @@ namespace ChainAbstractions.Stacks
                 if (_error != null)
                 {
                     _state = TransactionState.Failed;
+                    return;
+                }
+
+                if (_transaction != null && _info == null)
+                {
+                    _state = TransactionState.Unknown;
                     return;
                 }
 
@@ -214,6 +247,29 @@ namespace ChainAbstractions.Stacks
             public override string ToString()
             {
                 return Error != null ? $"Error: {Error}" : $"State = {State}";
+            }
+
+            public async Task<Error> Send(IFungibleToken? newCost)
+            {
+                if (State == TransactionState.PreApproved || State == TransactionState.Approved)
+                {
+                    return new Error("Incorrect transaction state");
+                }
+
+                if (_transaction == null)
+                {
+                    return new Error("Not found");
+                }
+
+                if (newCost != null)
+                    _transaction.UpdateFeeAndNonce(newCost.Balance, _transaction.Nonce);
+
+                var result = await _manager.Run(_transaction).ConfigureAwait(false);
+
+                _info = result.Data;
+                _error = result.Error;
+
+                return _error;
             }
         }
 
@@ -293,7 +349,7 @@ namespace ChainAbstractions.Stacks
                 _readMetaData = readMetaData;
             }
 
-            protected override async Task<List<INFT>> GetRange(long index, long count)
+            protected override async Task<List<INFT>?> GetRange(long index, long count)
             {
                 var nfts = new List<INFT>();
                 var result = await _chain.GetNFTHoldings(_address, _nftType != null ? new string[] { _nftType } : null, false, (ulong)count, (ulong)index).ConfigureAwait(false);

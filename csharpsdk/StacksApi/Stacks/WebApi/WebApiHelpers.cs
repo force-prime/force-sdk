@@ -1,4 +1,7 @@
-﻿using StacksForce.Utils;
+﻿using StacksForce.Stacks.ChainTransactions;
+using StacksForce.Utils;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 
@@ -33,6 +36,70 @@ namespace StacksForce.Stacks.WebApi
                 return new AsyncCallResult<T?>(result.Data!.UnwrapUntil<T>());
 
             return new AsyncCallResult<T?>(result.Error!);
+        }
+    }
+
+
+    public class TransactionEventStream : BasicDataStream<TransactionEvent>
+    {
+        private readonly Blockchain _chain;
+        private readonly string _txId;
+
+        public TransactionEventStream(Blockchain chain, string txId)
+        {
+            _chain = chain;
+            _txId = txId;
+        }
+
+        protected async override Task<List<TransactionEvent>?> GetRange(long index, long count)
+        {
+            var result = await _chain.GetTransactionEvents(_txId, (int) count, (int) index).ConfigureAwait(false);
+            
+            if (result.IsSuccess)
+            {
+                return result.Data.events.Select(x => TransactionEvent.FromEventData(x)).Where(x => x != null).ToList();
+            }
+            return null;
+        }
+    }
+
+    public class TransactionInfoStream : BasicDataStream<TransactionInfo>
+    {
+        private readonly Blockchain _chain;
+        private readonly bool _unanchored;
+
+        public TransactionInfoStream(Blockchain chain, bool unanchored = true)
+        {
+            _chain = chain;
+            _unanchored = unanchored;
+        }
+
+        protected async override Task<List<TransactionInfo>?> GetRange(long index, long count)
+        {
+            var result = await _chain.GetRecentTransactions((uint) count, (uint) index, null, _unanchored).ConfigureAwait(false);
+            List<TransactionInfo> transactions = new List<TransactionInfo>();
+            if (result.IsSuccess)
+            {
+                var ids = result.Data.results.Select(x => x.tx_id).ToArray();
+                var transactionsWithEvents = await _chain.GetTransactionsDetails(ids, 0, 30, _unanchored).ConfigureAwait(false);
+                if (transactionsWithEvents.IsSuccess)
+                {
+                    foreach (var t in transactionsWithEvents.Data)
+                    {
+                        if (t.Value.found)
+                        {
+                            var info = TransactionInfo.FromData(_chain, t.Value.result);
+                            if (info != null)
+                                transactions.Add(info);
+                        }
+                    }
+                }
+                else
+                    return null;
+            }
+            else 
+                return null;
+            return transactions;
         }
     }
 }

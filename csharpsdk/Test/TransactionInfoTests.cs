@@ -18,7 +18,7 @@ namespace StacksForceTest
             Assert.NotNull(transfer);
             Assert.Equal("Faucet", transfer.Memo);
             Assert.Equal(500000000, transfer.Amount);
-            Assert.Equal(true, transfer.IsAnchored);
+            Assert.True(transfer.IsAnchored);
             Assert.Equal(TransactionType.TokenTransfer, transfer.Type);
             Assert.Equal(TransactionStatus.Success, transfer.Status);
         }
@@ -29,13 +29,13 @@ namespace StacksForceTest
             var info = await TransactionInfo.ForTxId(Blockchains.Testnet, "0xc83b1a9ab6ea2bfce5097172d2e3fce83c43b1e9ba192ce7ee924e2103eeca6e");
             var contractCall = info as ContractCallTransactionInfo;
             Assert.NotNull(contractCall);
-            Assert.Equal(true, contractCall.IsAnchored);
+            Assert.True(contractCall.IsAnchored);
             Assert.Equal(TransactionType.ContractCall, contractCall.Type);
             Assert.Equal(TransactionStatus.Success, contractCall.Status);
             Assert.Equal("ST1QK1AZ24R132C0D84EEQ8Y2JDHARDR58SMAYMMW", contractCall.Address);
             Assert.Equal("boom-nfts", contractCall.Contract);
             Assert.Equal("mint-series", contractCall.Function);
-            Assert.Equal(contractCall.Arguments[0].ToString(), "STQ9H1T8JT5F6YJWJRK7E98E2D0RNHGA5MKNDJSZ");
+            Assert.Equal("STQ9H1T8JT5F6YJWJRK7E98E2D0RNHGA5MKNDJSZ", contractCall.Arguments[0].ToString());
             Assert.True(contractCall.Arguments[1].IsNone());
             Assert.True(contractCall.Arguments[2].IsNone());
             Assert.Equal("minee", contractCall.Arguments[3].UnwrapUntil<Clarity.StringType>().Value);
@@ -61,7 +61,7 @@ namespace StacksForceTest
             var info = await TransactionInfo.ForTxId(Blockchains.Testnet, "016fe6537fd2a0cd6aea4daf79d766dfe83ce343058e5dd38aef72410484428c");
             var deploy = info as ContractDeployTransactionInfo;
             Assert.NotNull(deploy);
-            Assert.Equal(false, deploy.IsAnchored);
+            Assert.False(deploy.IsAnchored);
             Assert.Equal(TransactionType.SmartContract, deploy.Type);
             Assert.Equal(TransactionStatus.AbortByResponse, deploy.Status);
         }
@@ -72,21 +72,40 @@ namespace StacksForceTest
             var info = await TransactionInfo.ForTxId(Blockchains.Mainnet, "9ee13c47c9231d64279dd930115271747b6f7bbf4ad3ff1262bec424296fc822");
             var call = info as ContractCallTransactionInfo;
             Assert.NotNull(call);
-            Assert.Equal(false, call.IsAnchored);
+            Assert.False(call.IsAnchored);
             Assert.Equal(TransactionType.ContractCall, call.Type);
             Assert.Equal(TransactionStatus.AbortByPostCondition, call.Status);
             Assert.True(call.Result.IsErr());
         }
 
         [Fact]
-        public static async void TestFailed3()
+        public static async void TestEvents()
         {
-            var info = await TransactionInfo.ForTxId(Blockchains.Mainnet, "df4c25a81a94a37d3b2879073416b09ea1888692526e9e09539fb7a2d746e02b");
-            var call = info as ContractCallTransactionInfo;
-            Assert.NotNull(call);
-            Assert.Equal(false, call.IsAnchored);
-            Assert.Equal(TransactionType.ContractCall, call.Type);
-            Assert.Equal(TransactionStatus.DroppedStaleGarbageCollect, call.Status);
+            var info = await TransactionInfo.ForTxId(Blockchains.Mainnet, "0xe2355eaec9795effe58be9d1ccffd939e1799b0c07b5787ab5911f43f41765cf");
+            Assert.NotNull(info);
+            var s1 = info.Events.GetStream();
+            var s1Task = s1.ReadMoreAsync(1);
+            var s2 = info.Events.GetStream();
+            s2.ReadMoreAsync(2);
+            var s3 = info.Events.GetStream();
+            s3.ReadMoreAsync(3);
+            var s4 = info.Events.GetStream();
+            await Task.Delay(1000);
+            await s1Task;
+            var first = await s4.ReadMoreAsync(1);
+            Assert.Equal("SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.age000-governance-token::alex", (first[0] as FTEvent).AssetId);
+            Assert.Equal(187911124ul, (first[0] as FTEvent).Amount);
+            Assert.Equal(TransactionEvent.TokenEventType.Mint, (first[0] as FTEvent).Type);
+            var last = await s1.ReadMoreAsync(20);
+            Assert.Equal(1, first.Count);
+            Assert.Equal(20, last.Count);
+            var last2 = await s1.ReadMoreAsync(25);
+            Assert.Equal(25, last2.Count);
+
+            Assert.Equal("SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-apower::apower", (last2[24] as FTEvent).AssetId);
+            Assert.Equal(30368232ul, (last2[24] as FTEvent).Amount);
+            Assert.Equal(TransactionEvent.TokenEventType.Mint, (last2[24] as FTEvent).Type);
+
         }
     }
 }

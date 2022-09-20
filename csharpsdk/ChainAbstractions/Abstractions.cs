@@ -18,7 +18,7 @@ namespace ChainAbstractions
     public interface IBasicWallet : IWalletInfo
     {
         public string GetMnemonic();
-        public Task<ITransaction> Transfer(IFungibleToken token, string recepient, string? memo = null);
+        public Task<ITransaction> GetTransferTransaction(IFungibleToken token, string recepient, string? memo = null);
     }
 
     public interface INFT
@@ -43,6 +43,7 @@ namespace ChainAbstractions
 
     public enum TransactionState
     {
+        Unknown,
         Pending,
         Failed,
         PreApproved,
@@ -51,8 +52,11 @@ namespace ChainAbstractions
 
     public interface ITransaction
     {
+        IFungibleToken? Cost { get; } 
         TransactionState State { get; }
-        Error Error { get; }
+        Error? Error { get; }
+
+        Task<Error> Send(IFungibleToken? newCost = null);
     }
 
     public interface ITransferFundsTransaction : ITransaction
@@ -64,7 +68,7 @@ namespace ChainAbstractions
     public interface IBlockchain
     {
         IBasicWallet CreateNewWallet();
-        IBasicWallet GetWalletForMnemonic(string mnemonic);
-        IWalletInfo GetWalletInfoForAddress(string address);   
+        IBasicWallet? GetWalletForMnemonic(string mnemonic);
+        IWalletInfo? GetWalletInfoForAddress(string address);
     }
 }

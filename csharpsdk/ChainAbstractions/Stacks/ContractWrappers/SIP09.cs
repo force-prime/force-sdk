@@ -31,7 +31,9 @@ namespace ChainAbstractions.Stacks.ContractWrappers
 
         static public async Task<ITransaction> Transfer(string address, string contract, string nft, IBasicWallet caller, string recepient, TokenIdType tokenId)
         {
-            var result = await caller.GetTransactionManager().ContractCall(address, contract, "transfer",
+            var manager = caller.GetTransactionManager();
+            
+            var transaction = await manager.GetContractCall(address, contract, "transfer",
                 new Clarity.Value[] {
                     tokenId,
                     Clarity.Principal.FromString(caller.GetAddress()),
@@ -42,7 +44,7 @@ namespace ChainAbstractions.Stacks.ContractWrappers
                     new NFTPostCondition(recepient, new AssetInfo(address, contract, nft), NonFungibleConditionCode.Owns, tokenId)
                 }).ConfigureAwait(false);
 
-            return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
+            return new StacksAbstractions.TransactionWrapper(manager, transaction);
         }
 
         static public Task<AsyncCallResult<string?>> GetTokenUri(string address, string contract, TokenIdType tokenId)
@@ -56,7 +58,7 @@ namespace ChainAbstractions.Stacks.ContractWrappers
             var chain = StacksAbstractions.FromAddress(address);
             var owner = await WebApiHelpers.ReadonlyGet<Clarity.Principal>(chain.AsStacksBlockchain(), address, contract, "get-owner", tokenId).ConfigureAwait(false);
             if (owner.IsSuccess)
-                return new AsyncCallResult<string?>(owner.Data!.ToString());
+                return owner.Data != null ? new AsyncCallResult<string?>(owner.Data!.ToString()) : new AsyncCallResult<string?>((string?)null);
             return new AsyncCallResult<string?>(owner.Error!);
         }
 
@@ -65,7 +67,6 @@ namespace ChainAbstractions.Stacks.ContractWrappers
 
         public Task<AsyncCallResult<string?>> GetTokenUri(TokenIdType tokenId) => GetTokenUri(_address, _contract, tokenId);
         public Task<AsyncCallResult<string?>> GetTokenOwner(TokenIdType tokenId) => GetTokenOwner(_address, _contract, tokenId);
-
 
         public Task<INFT> GetById(TokenIdType tokenId) => NFTUtils.GetFrom(_address, _contract, _token, tokenId);
     }

@@ -101,61 +101,32 @@ namespace StacksForce.Stacks.WebApi
             return HttpAPIUtils.PerformHttpRequest<GetTransactionDetailsReponse>(methodName, requestData, null);
         }
 
+        // https://docs.hiro.so/api#tag/Transactions/operation/get_filtered_events
+        static public Task<AsyncCallResult<GetTransactionEventsResponse>> GetTransactionEvents(this Blockchain chain, string txId, int limit = 20, int offset = 0)
+        {
+            string methodName = chain.Endpoint + "extended/v1/tx/events";
+
+            var requestData = new Dictionary<string, object?> {
+                { "tx_id", txId },
+                { "offset", offset },
+                { "limit", limit },
+            };
+
+            return HttpAPIUtils.PerformHttpRequest<GetTransactionEventsResponse>(methodName, requestData, null);
+        }
+
         public class GetTransactionDetailsReponse : Dictionary<string, GetTransactionDetailsReponse.Result>
         {
             public class Result
             {
                 public bool found;
-                public Transaction result;
+                public TransactionData result;
             }
+        }
 
-            public class Transaction
-            {
-                public string tx_id;
-                public uint nonce;
-                public string tx_status;
-                public string tx_type;
-                public ulong fee_rate;
-                public bool is_unanchored;
-                public string sender_address;
-                public string microblock_hash;
-                public uint microblock_sequence;
-                public TokenTransfer token_transfer;
-                public ContractCall contract_call;
-                public SmartContract smart_contract;
-                public TxResult tx_result;
-
-                public class TxResult
-                {
-                    public string hex;
-                }
-
-                public class SmartContract
-                {
-                    public string contract_id;
-                }
-
-                public class TokenTransfer {
-                    public string recipient_address;
-                    public ulong amount;
-                    public string memo;
-                }
-
-                public class ContractCall
-                {
-                    public string contract_id;
-                    public string function_name;
-                    public string function_signature;
-                    public Argument[] function_args;
-
-                    public class Argument
-                    {
-                        public string hex;
-                        public string name;
-                        public string type;
-                    }
-                }
-            }
+        public class GetTransactionEventsResponse
+        {
+            public TransactionData.Event[] events;
         }
 
         public class GetPrincipalTransactionDetailsReponse
@@ -197,13 +168,89 @@ namespace StacksForce.Stacks.WebApi
 
         public class GetRecentTransactionsResponse
         {
-
+            public TransactionData[] results;
         }
 
         public class GetMempoolTransactionsResponse
         {
             public int total;
-            public GetTransactionDetailsReponse.Transaction[] results;
+            public TransactionData[] results;
         }
+
+        public class TransactionData
+        {
+            public string tx_id;
+            public uint nonce;
+            public string tx_status;
+            public string tx_type;
+            public ulong fee_rate;
+            public bool is_unanchored;
+            public long burn_block_time;
+            public string sender_address;
+            public string microblock_hash;
+            public uint microblock_sequence;
+            public TokenTransfer token_transfer;
+            public ContractCall contract_call;
+            public SmartContract smart_contract;
+            public TxResult tx_result;
+            public uint event_count;
+            public Event[] events;
+
+            public class Event
+            {
+                public string event_type;
+                public TransactionEventAsset asset;
+                public ContractLog contract_log;
+            }
+
+            public class ContractLog
+            {
+                public Value value;
+                public class Value
+                {
+                    public string hex;
+                }
+            }
+
+            public class TransactionEventAsset
+            {
+                public string asset_event_type;
+                public string asset_id;
+                public ulong amount;
+            }
+
+            public class TxResult
+            {
+                public string hex;
+            }
+
+            public class SmartContract
+            {
+                public string contract_id;
+            }
+
+            public class TokenTransfer
+            {
+                public string recipient_address;
+                public ulong amount;
+                public string memo;
+            }
+
+            public class ContractCall
+            {
+                public string contract_id;
+                public string function_name;
+                public string function_signature;
+                public Argument[] function_args;
+
+                public class Argument
+                {
+                    public string hex;
+                    public string name;
+                    public string type;
+                }
+            }
+        }
+
     }
 }

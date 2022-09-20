@@ -52,7 +52,7 @@ namespace StacksForceTest
         [Fact]
         public static void TestBuildUrl()
         {
-            string expected = "https://test.test/?vint=22&vstr=string&arr=1%2c2%2c3&bool=False";
+            string expected = "https://test.test/?vint=22&vstr=string&arr=1&arr=2&arr=3&bool=False";
             Dictionary<string, object?> fields = new Dictionary<string, object?>()
             {
                 {"vint", 22 },

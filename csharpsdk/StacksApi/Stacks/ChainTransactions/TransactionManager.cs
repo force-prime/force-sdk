@@ -20,6 +20,24 @@ namespace StacksForce.Stacks.ChainTransactions
             Sender = sender;
         }
 
+        public Task<AsyncCallResult<Transaction>> GetStxTransfer(string recepient, ulong amount, string? memo = null)
+        {
+            var transaction = TransactionBuilder.StxTransfer(Chain, Sender, recepient, amount, memo);
+            return TransactionUtils.Prepare(Chain, Sender, transaction);
+        }
+
+        public Task<AsyncCallResult<Transaction>> GetContractCall(string address, string contract, string function, Clarity.Value[]? arguments = null, PostCondition[]? postConditions = null)
+        {
+            var transaction = TransactionBuilder.ContractCall(Chain, Sender, address, contract, function, arguments, postConditions);
+            return TransactionUtils.Prepare(Chain, Sender, transaction);
+        }
+
+        public Task<AsyncCallResult<Transaction>> GetContractDeploy(string contractName, string code)
+        {
+            var transaction = TransactionBuilder.DeployContract(Chain, Sender, contractName, code);
+            return TransactionUtils.Prepare(Chain, Sender, transaction);
+        }
+
         public List<T> GetByStatus<T>(TransactionStatus status) where T : TransactionInfo {
             lock (_id2Info)
             {
@@ -44,24 +62,6 @@ namespace StacksForce.Stacks.ChainTransactions
             }
 
             return null;
-        }
-
-        public Task<AsyncCallResult<TransactionInfo>> StxTransfer(string recepient, ulong amount, string? memo = null)
-        {
-            var transaction = TransactionBuilder.StxTransfer(Chain, Sender, recepient, amount, memo);
-            return Run(transaction);
-        }
-
-        public Task<AsyncCallResult<TransactionInfo>> ContractCall(string address, string contract, string function, params Clarity.Value[] arguments)
-        {
-            var transaction = TransactionBuilder.ContractCall(Chain, Sender, address, contract, function, arguments);
-            return Run(transaction);
-        }
-
-        public Task<AsyncCallResult<TransactionInfo>> ContractCall(string address, string contract, string function, Clarity.Value[] arguments, PostCondition[] postConditions)
-        {
-            var transaction = TransactionBuilder.ContractCall(Chain, Sender, address, contract, function, arguments, postConditions);
-            return Run(transaction);
         }
 
         public async Task<AsyncCallResult<TransactionInfo>> ResendTransaction(string txid, ulong newFee)

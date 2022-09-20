@@ -1,11 +1,14 @@
 ﻿using StacksForce.Stacks.WebApi;
 using StacksForce.Utils;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using static StacksForce.Stacks.ChainTransactions.TransactionEvent;
 using static StacksForce.Stacks.WebApi.Transactions;
+using static StacksForce.Stacks.WebApi.Transactions.TransactionData;
 
 namespace StacksForce.Stacks.ChainTransactions
 {
@@ -13,47 +16,33 @@ namespace StacksForce.Stacks.ChainTransactions
     {
         public TransactionStatus Status { get; private set; } = TransactionStatus.Undefined;
         public TransactionType Type { get; private set; } = TransactionType.Undefined;
-        public uint MicroblockSequence { get; private set; } 
+        public uint MicroblockSequence { get; private set; }
         public ulong Nonce { get; private set; }
         public ulong Fee { get; private set; }
         public bool IsAnchored { get; private set; }
         public string TxId { get; private set; }
         public string MicroblockHash { get; private set; }
         public string Sender { get; private set; }
+        public DateTime BurnBlockTime { get; private set; }
+
+        public IDataStreamProvider<TransactionEvent> Events => _events;
 
         public event Action? StatusChanged;
 
         private Blockchain _chain;
+        private IDataStreamProvider<TransactionEvent> _events;
 
-        static public async Task<int> GetMicroblockConfirmations(Blockchain chain, string microblockId)
+        public string StacksExplorerLink => $"https://explorer.stacks.co/txid/{TxId}?chain={_chain.Name.ToLower()}";
+
+        static internal TransactionInfo? FromData(Blockchain chain, TransactionData transactionData)
         {
-            if (string.IsNullOrEmpty(microblockId))
-                return 0;
+            var type = EnumUtils.FromString(transactionData.tx_type, TransactionType.Undefined);
+            var info = GetPending(chain, type, transactionData.tx_id);
 
-            var result = await chain.GetRecentMicroblocks();
-            if (result.IsError)
-                return -1;
-
-            uint mySeq = 0;
-            uint maxMs = 0;
-
-            foreach (var m in result.Data.results)
-            {
-                if (m.microblock_hash == microblockId)
-                    mySeq = m.microblock_sequence;
-
-                maxMs = Math.Max(maxMs, m.microblock_sequence);
-            }
-
-            return (int)(maxMs - mySeq);
-        }
-
-        static internal TransactionInfo? FromData(Blockchain chain, GetTransactionDetailsReponse.Transaction transaction)
-        {
-            var type = EnumUtils.FromString(transaction.tx_type, TransactionType.Undefined);
-            var info = GetPending(chain, type, transaction.tx_id);
             if (info != null)
-                info.RefreshFromData(transaction);
+            {
+                info.RefreshFromData(transactionData);
+            }
             return info;
         }
 
@@ -105,33 +94,70 @@ namespace StacksForce.Stacks.ChainTransactions
             };
 
 
-        private static async Task<AsyncCallResult<GetTransactionDetailsReponse.Transaction>> GetTxInfo(Blockchain chain, string txId)
+        private static async Task<AsyncCallResult<TransactionData>> GetTxInfo(Blockchain chain, string txId)
         {
             if (!txId.StartsWith("0x"))
                 txId = "0x" + txId;
 
             var result = await chain.GetTransactionsDetails(new string[] { txId }, 0, 96, true).ConfigureAwait(false);
             if (result.IsError)
-                return new AsyncCallResult<GetTransactionDetailsReponse.Transaction>(result.Error!);
+                return new AsyncCallResult<TransactionData>(result.Error!);
 
             var response = result.Data[txId];
             if (!response.found)
-                return new AsyncCallResult<GetTransactionDetailsReponse.Transaction>(new Error("Not found"));
+                return new AsyncCallResult<TransactionData>(new Error("Not found"));
 
-            return new AsyncCallResult<GetTransactionDetailsReponse.Transaction>(response.result);
+            return new AsyncCallResult<TransactionData>(response.result);
         }
 
-        protected virtual void RefreshFromData(GetTransactionDetailsReponse.Transaction result)
+        protected virtual void RefreshFromData(TransactionData transactionData)
         {
-            MicroblockSequence = result.microblock_sequence;
-            MicroblockHash = result.microblock_hash;
-            IsAnchored = !result.is_unanchored && result.tx_status == "success";
-            Nonce = result.nonce;
-            Fee = result.fee_rate;
-            Sender = result.sender_address;
+            UpdateEvents(transactionData);
 
-            var status = EnumUtils.FromString(result.tx_status, TransactionStatus.Undefined);
+            if (transactionData.burn_block_time > 0)
+                BurnBlockTime = DateTimeOffset.FromUnixTimeSeconds(transactionData.burn_block_time).DateTime;
+            MicroblockSequence = transactionData.microblock_sequence;
+            MicroblockHash = transactionData.microblock_hash;
+            IsAnchored = !transactionData.is_unanchored && transactionData.tx_status == "success";
+            Nonce = transactionData.nonce;
+            Fee = transactionData.fee_rate;
+            Sender = transactionData.sender_address;
+
+            var status = EnumUtils.FromString(transactionData.tx_status, TransactionStatus.Undefined);
             UpdateStatus(status);
+        }
+
+        private void UpdateEvents(TransactionData transactionData)
+        {
+            if (_events != null)
+                return;
+
+            bool isEmpty = transactionData.event_count == 0;
+            if (isEmpty)
+            {
+                _events = EmptyDataStreamProvider<TransactionEvent>.EMPTY;
+                return;
+            }
+                 
+            bool allEvents = isEmpty;
+            List<TransactionEvent>? events = null;
+
+            if (transactionData.events != null && !allEvents)
+            {
+                allEvents = transactionData.events.Length == transactionData.event_count;
+                events = new List<TransactionEvent>();
+                foreach (var e in transactionData.events)
+                {
+                    TransactionEvent? evt = FromEventData(e);
+                    if (evt != null)
+                        events.Add(evt);
+                }
+            }
+
+            if (allEvents)
+                _events = new BasicCachedDataStream<TransactionEvent>(events!);
+            else
+                _events = new BasicCachedDataStream<TransactionEvent>(new TransactionEventStream(_chain, TxId), events);
         }
 
         internal void UpdateStatus(TransactionStatus newStatus)
@@ -148,7 +174,7 @@ namespace StacksForce.Stacks.ChainTransactions
     {
         public string Contract { get; private set; }
 
-        protected override void RefreshFromData(GetTransactionDetailsReponse.Transaction result)
+        protected override void RefreshFromData(TransactionData result)
         {
             var addressAndContract = result.smart_contract.contract_id.Split('.');
             Contract = addressAndContract[1];
@@ -170,7 +196,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public Clarity.Value? Result { get; private set; }
 
-        public Clarity.Value[] Arguments { get; private set; }
+        public Clarity.Value[]? Arguments { get; private set; }
 
         public override string ToString()
         {
@@ -178,7 +204,7 @@ namespace StacksForce.Stacks.ChainTransactions
             return $"Call {Address}.{Contract}::{Function}({arguments})";
         }
 
-        protected override void RefreshFromData(GetTransactionDetailsReponse.Transaction result)
+        protected override void RefreshFromData(TransactionData result)
         {
             var addressAndContract = result.contract_call.contract_id.Split('.');
             var arguments = result.contract_call.function_args.Select(x => Clarity.Value.FromHex(x.hex)).ToArray();
@@ -200,7 +226,7 @@ namespace StacksForce.Stacks.ChainTransactions
         public string Memo { get; private set; }
         public BigInteger Amount { get; private set; }
 
-        protected override void RefreshFromData(GetTransactionDetailsReponse.Transaction result)
+        protected override void RefreshFromData(TransactionData result)
         {
             Recepient = result.token_transfer.recipient_address;
             Memo = ExtractMemo(result.token_transfer.memo);
@@ -220,5 +246,135 @@ namespace StacksForce.Stacks.ChainTransactions
         {
             return $"Transfer {Amount} {Sender} -> {Recepient} ({Memo})";
         }
+    }
+
+    public class TransactionEvent
+    {
+        public enum EventType
+        {
+            Undefined,
+
+            StxAsset,
+            FungibleTokenAsset,
+            NonFungibleTokenAsset,
+            StxLock,
+            SmartContractLog
+        }
+
+        public enum TokenEventType
+        {
+            Undefined,
+
+            Transfer,
+            Mint,
+            Burn
+        }
+        static public TransactionEvent? FromEventData(TransactionData.Event e)
+        {
+            var type = EnumUtils.FromString(e.event_type, EventType.Undefined);
+            switch (type)
+            {
+                case EventType.StxAsset:
+                    return StxEvent.From(e.asset);
+                case EventType.NonFungibleTokenAsset:
+                    return NFTEvent.From(e.asset);
+                case EventType.SmartContractLog:
+                    return LogEvent.From(e.contract_log);
+                case EventType.FungibleTokenAsset:
+                    return FTEvent.From(e.asset);
+                default:
+                    Log.Trace("Transaction event type not supported " + e.event_type);
+                    return null;
+            }
+        }
+    }
+
+    public class FTEvent : TokenEvent
+    {
+        public ulong Amount { get; private set; }
+
+        internal static FTEvent? From(TransactionEventAsset data)
+        {
+            var e = From<FTEvent>(data);
+            if (e == null)
+                return null;
+            e.Amount = data.amount;
+            return e;
+        }
+        public override string ToString()
+        {
+            return $"{Type} {AssetId} {Amount}";
+        }
+    }
+
+    public class NFTEvent : TokenEvent
+    {
+        internal static NFTEvent? From(TransactionEventAsset data) => From<NFTEvent>(data);
+    }
+
+    public class TokenEvent : TransactionEvent
+    {
+        public TokenEventType Type { get; private set; }
+        public string AssetId { get; private set; }
+        internal static T? From<T>(TransactionEventAsset data) where T: TokenEvent, new()
+        {
+            if (data == null) return null;
+
+            var e = new T();
+            var status = EnumUtils.FromString(data.asset_event_type, TokenEventType.Undefined);
+            if (status == TokenEventType.Undefined)
+                return null;
+            e.Type = status;
+            e.AssetId = data.asset_id;
+            return e;
+        }
+
+        public override string ToString()
+        {
+            return $"{Type} {AssetId}";
+        }
+    }
+
+    public class LogEvent : TransactionEvent
+    {
+        public Clarity.Value Value { get; private set; }
+
+        internal static LogEvent? From(ContractLog data)
+        {
+            if (data == null || data.value == null) return null;
+            var value = Clarity.Value.FromHex(data.value.hex);
+            if (value == null || value.IsNone())
+                return null;
+            return new LogEvent { Value = value };
+        }
+
+        public override string ToString()
+        {
+            return Value.ToString();
+        }
+    }
+
+    public class StxEvent : TransactionEvent
+    {
+        public ulong Amount { get; private set; }
+        public TokenEventType Type { get; private set; }
+
+        internal static StxEvent? From(TransactionData.TransactionEventAsset data)
+        {
+            if (data == null) return null;
+
+            var e = new StxEvent();
+            var status = EnumUtils.FromString(data.asset_event_type, TokenEventType.Undefined);
+            if (status == TokenEventType.Undefined)
+                return null;
+            e.Type = status;
+            e.Amount = data.amount;
+            return e;
+        }
+        public override string ToString()
+        {
+            return $"{Type} {Amount} mSTXs";
+        }
+
     }
 }
