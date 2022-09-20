@@ -24,33 +24,51 @@ namespace ShopSample
                     { "token-price", new Clarity.UInteger128((ulong)x.tokenPrice) },
                     { "stx-price", new Clarity.UInteger128((ulong)x.stxPrice) }})).ToArray());
 
-            var result = await m.ContractCall(_address, "shop", "update-nft-offers", offerList).ConfigureAwait(false);
+            var result = await m.GetContractCall(_address, "shop", "update-nft-offers", 
+                new Clarity.Value[] { offerList }).ConfigureAwait(false);
 
-            return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
+            return new StacksAbstractions.TransactionWrapper(m, result);
         }
 
         public async Task<ITransaction> SetAdmins(TransactionsManager m, string[] admins)
         {
-            var result = await m.ContractCall(_address, "auth", "set-admins",
-                    new Clarity.List(admins.Select(x => Clarity.Principal.FromString(x)).ToArray())
+            var result = await m.GetContractCall(_address, "auth", "set-admins",
+                    new Clarity.Value[] {
+                        new Clarity.List(admins.Select(x => Clarity.Principal.FromString(x)).ToArray())
+                    }
                 ).ConfigureAwait(false);
 
-            return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
+            return new StacksAbstractions.TransactionWrapper(m, result);
         }
 
-        public async Task<ITransaction> Mint(TransactionsManager m, string recepient, ulong nftType)
+        public async Task<ITransaction> MintNFT(TransactionsManager m, string recepient, ulong nftType)
         {
-            var result = await m.ContractCall(_address, "basic-nft", "mint",
-                    Clarity.Principal.FromString(recepient),
-                    new Clarity.UInteger128(nftType)
+            var result = await m.GetContractCall(_address, "basic-nft", "mint",
+                    new Clarity.Value[] {
+                        Clarity.Principal.FromString(recepient),
+                        new Clarity.UInteger128(nftType)
+                    }
                 ).ConfigureAwait(false);
 
-            return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
+            return new StacksAbstractions.TransactionWrapper(m, result);
+        }
+
+        public async Task<ITransaction> MintToken(TransactionsManager m, string recepient, ulong amount)
+        {
+            var result = await m.GetContractCall(_address, "basic-token", "mint",
+                    new Clarity.Value[] {
+                        new Clarity.UInteger128(amount),
+                        Clarity.Principal.FromString(recepient),
+                    }
+                ).ConfigureAwait(false);
+
+            return new StacksAbstractions.TransactionWrapper(m, result);
         }
 
         public async Task<ITransaction> BuyNftForTokens(IBasicWallet caller, ulong nftType, ulong tokenCost)
         {
-            var result = await caller.GetTransactionManager().ContractCall(_address, "shop", "buy-nft-tokens",
+            var manager = caller.GetTransactionManager();
+            var result = await manager.GetContractCall(_address, "shop", "buy-nft-tokens",
                 new Clarity.Value[] {
                     new Clarity.UInteger128(nftType),
                     new Clarity.UInteger128(tokenCost)
@@ -60,7 +78,7 @@ namespace ShopSample
                     new FungibleTokenPostCondition(caller.GetAddress(), new AssetInfo(_fullTokenId), FungibleConditionCode.LessEqual, tokenCost),
                 }).ConfigureAwait(false);
 
-            return new StacksAbstractions.TransactionInfoWrapper(result.Data, result.Error);
+            return new StacksAbstractions.TransactionWrapper(manager, result);
         }
 
     }
