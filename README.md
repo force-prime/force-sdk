@@ -1,10 +1,17 @@
-## Force SDK.
-
+## Stacks Force SDK.
+The C# SDK allows interaction with the [`Stacks blockchain`](https://www.stacks.co/)
+\
+\
+Main SDK project: [`StacksApi project`](https://github.com/stacks-force/force-sdk/tree/main/csharpsdk/StacksApi)
+\
+Easy-to-use blockchain abstractions: [`ChainAbstractions project`](https://github.com/stacks-force/force-sdk/blob/main/csharpsdk/ChainAbstractions) (based on StacksApi project)
+\
 At the moment SDK projects target .NET Standard 2.1 (to be compatible with Unity, MAUI/Xamarin).
 \
-The C# SDK allows interaction with the [`Stacks blockchain`](https://www.stacks.co/) and comprises of the following parts:
+\
+Major repo parts:
 
-* High level abstractions to start experimenting and coding right away :)
+* High level abstractions (ChainAbstractions project) to start experimenting and coding right away :)
 \
 See [`Abstractions.cs`](https://github.com/stacks-force/force-sdk/blob/main/csharpsdk/ChainAbstractions/Abstractions.cs)
 
@@ -52,7 +59,8 @@ MAUISample can be installed on Android/iOS devices and more.
 Read more about [`MAUI`](https://docs.microsoft.com/en-us/dotnet/maui/what-is-maui)
 3) Explore ShopSample project, read [`instructions`](https://github.com/stacks-force/force-sdk/tree/main/docs/shop.md)
 
-
+### Our discord channel dedicated to .NET and Stacks development:
+https://discord.gg/2hmpTGCu6y
 
 ### Next steps:
 * Explore stacks ecosystem: https://www.stacks.co/
