@@ -19,7 +19,7 @@ namespace StacksForce.Stacks.WebApi
                 { "offset", offset },
             };
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetNFTHoldingsResponse>(methodName, getFields, null);
+            return HttpAPIUtils.GetRequest<GetNFTHoldingsResponse>(methodName, getFields);
         }
 
         // https://docs.hiro.so/api#tag/Non-Fungible-Tokens/operation/get_contract_nft_metadata
@@ -27,7 +27,7 @@ namespace StacksForce.Stacks.WebApi
         {
             string methodName = $"{chain.Endpoint}extended/v1/tokens/{tokenContractId}/nft/metadata";
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetNFTContractMetadataResponse>(methodName, null, null);
+            return HttpAPIUtils.GetRequest<GetNFTContractMetadataResponse>(methodName);
         }
 
         public class GetNFTContractMetadataResponse : HttpAPIUtils.JsonDataBase

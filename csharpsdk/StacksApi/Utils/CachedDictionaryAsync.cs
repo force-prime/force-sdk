@@ -53,7 +53,7 @@ namespace StacksForce.Utils
                     task = data.task;
                 }
             }
-            var value = await task.ConfigureAwait(false);
+            var value = await task.ConfigureAwait();
             data.value = value;
             data.task = null;
             if (_dropCacheOnLoad)

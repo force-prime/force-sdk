@@ -60,7 +60,7 @@ namespace StacksForce.Stacks.ChainTransactions
         }
 
         static public async Task<TransactionInfo?> ForTxId(Blockchain chain, string txId) {
-            var result = await GetTxInfo(chain, txId).ConfigureAwait(false);
+            var result = await GetTxInfo(chain, txId).ConfigureAwait();
             if (result.IsError)
                 return null;
 
@@ -75,7 +75,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public async Task<Error?> Refresh()
         {
-            var result = await GetTxInfo(_chain, TxId).ConfigureAwait(false);
+            var result = await GetTxInfo(_chain, TxId).ConfigureAwait();
             if (result.IsError)
                 return result.Error;
 
@@ -99,7 +99,7 @@ namespace StacksForce.Stacks.ChainTransactions
             if (!txId.StartsWith("0x"))
                 txId = "0x" + txId;
 
-            var result = await chain.GetTransactionsDetails(new string[] { txId }, 0, 96, true).ConfigureAwait(false);
+            var result = await chain.GetTransactionsDetails(new string[] { txId }, 0, 96, true).ConfigureAwait();
             if (result.IsError)
                 return new AsyncCallResult<TransactionData>(result.Error!);
 

@@ -175,13 +175,13 @@ namespace ChainAbstractions.Stacks
                 }
                 if (token.Data.Code == Stx.Code)
                 {
-                    var result = await _manager.GetStxTransfer(recepient, token.Balance, memo).ConfigureAwait(false);
+                    var result = await _manager.GetStxTransfer(recepient, token.Balance, memo).ConfigureAwait();
                     return new TransactionWrapper(_manager, result);
                 }
                 else
                 {
                     var ftData = token.Data as FungibleTokenData;
-                    return await SIP10.Transfer(ftData.Address, ftData.Contract, ftData.Id, this, token.Balance, GetAddress(), recepient, memo).ConfigureAwait(false);
+                    return await SIP10.Transfer(ftData.Address, ftData.Contract, ftData.Id, this, token.Balance, GetAddress(), recepient, memo).ConfigureAwait();
                 }
             }
         }
@@ -264,7 +264,7 @@ namespace ChainAbstractions.Stacks
                 if (newCost != null)
                     _transaction.UpdateFeeAndNonce(newCost.Balance, _transaction.Nonce);
 
-                var result = await _manager.Run(_transaction).ConfigureAwait(false);
+                var result = await _manager.Run(_transaction).ConfigureAwait();
 
                 _info = result.Data;
                 _error = result.Error;
@@ -291,7 +291,7 @@ namespace ChainAbstractions.Stacks
                 if (string.IsNullOrEmpty(tokenId))
                     tokenId = Stx.Code;
 
-                var result = await _chain.GetBalances(_address).ConfigureAwait(false);
+                var result = await _chain.GetBalances(_address).ConfigureAwait();
                 if (result.IsSuccess)
                 {
                     if (tokenId == Stx.Code)
@@ -299,7 +299,7 @@ namespace ChainAbstractions.Stacks
 
                     if (result.Data.fungible_tokens.TryGetValue(tokenId, out var info))
                     {
-                        var tokenData = await _chain.FTCache().Get(tokenId).ConfigureAwait(false);
+                        var tokenData = await _chain.FTCache().Get(tokenId).ConfigureAwait();
                         return new FungibleToken(info.balance, tokenData);
                     }
                 }
@@ -315,7 +315,7 @@ namespace ChainAbstractions.Stacks
             public async Task<List<IFungibleToken>> GetAllTokens()
             {
                 var fts = new List<IFungibleToken>();
-                var result = await _chain.GetBalances(_address).ConfigureAwait(false);
+                var result = await _chain.GetBalances(_address).ConfigureAwait();
                 if (result.IsSuccess)
                 {
                     fts.Add(new FungibleToken(result.Data.stx.balance, (StxTokenData)Stx));
@@ -323,7 +323,7 @@ namespace ChainAbstractions.Stacks
                     {
                         if (ft.Value.balance > 0)
                         {
-                            var tokenData = await _chain.FTCache().Get(ft.Key).ConfigureAwait(false);
+                            var tokenData = await _chain.FTCache().Get(ft.Key).ConfigureAwait();
                             fts.Add(new FungibleToken(ft.Value.balance, tokenData));
                         }
                     }
@@ -352,7 +352,7 @@ namespace ChainAbstractions.Stacks
             protected override async Task<List<INFT>?> GetRange(long index, long count)
             {
                 var nfts = new List<INFT>();
-                var result = await _chain.GetNFTHoldings(_address, _nftType != null ? new string[] { _nftType } : null, false, (ulong)count, (ulong)index).ConfigureAwait(false);
+                var result = await _chain.GetNFTHoldings(_address, _nftType != null ? new string[] { _nftType } : null, false, (ulong)count, (ulong)index).ConfigureAwait();
                 if (result.IsSuccess)
                 {
                     foreach (var t in result.Data.results)
@@ -360,9 +360,9 @@ namespace ChainAbstractions.Stacks
                         var data = t.Extract();
 
                         if (_readMetaData)
-                            nfts.Add(await NFTUtils.GetFrom(data.address, data.contract, data.nft, data.id).ConfigureAwait(false));
+                            nfts.Add(await NFTUtils.GetFrom(data.address, data.contract, data.nft, data.id).ConfigureAwait());
                         else
-                            nfts.Add(new NFTUtils.NFT(data.nft, string.Empty, string.Empty));
+                            nfts.Add(new NFTUtils.NFT(t.asset_identifier, data.id, data.nft, string.Empty, string.Empty));
                     }
                 }
                 return nfts;
@@ -386,7 +386,7 @@ namespace ChainAbstractions.Stacks
             private async Task<FungibleTokenData> RetrieveMetaData(string id, object passedInfo)
             {
                 var parsed = Address.ParseFromFullTokenId(id);
-                var metaData = await FungibleTokenMetaData.ForTokenContract(_chain, parsed.address + "." + parsed.contract).ConfigureAwait(false);
+                var metaData = await FungibleTokenMetaData.ForTokenContract(_chain, parsed.address + "." + parsed.contract).ConfigureAwait();
                 return new FungibleTokenData(id, metaData);
             }
         }

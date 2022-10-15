@@ -11,7 +11,7 @@ namespace StacksForce.Stacks.WebApi
     {
         static public async Task<AsyncCallResult<string?>> ReadonlyGetString(this Blockchain chain, string address, string contract, string method, params Clarity.Value[] arguments)
         {
-            var result = await ReadonlyGet<Clarity.StringType>(chain, address, contract, method, arguments).ConfigureAwait(false);
+            var result = await ReadonlyGet<Clarity.StringType>(chain, address, contract, method, arguments).ConfigureAwait();
 
             if (result.IsSuccess)
                 return result.Data != null ? new AsyncCallResult<string?>(result.Data.Value) : new AsyncCallResult<string?>((string?) null);
@@ -21,7 +21,7 @@ namespace StacksForce.Stacks.WebApi
 
         static public async Task<AsyncCallResult<BigInteger?>> ReadonlyGetUlong(this Blockchain chain, string address, string contract, string method, params Clarity.Value[] arguments)
         {
-            var result = await ReadonlyGet<Clarity.UInteger128>(chain, address, contract, method, arguments).ConfigureAwait(false);
+            var result = await ReadonlyGet<Clarity.UInteger128>(chain, address, contract, method, arguments).ConfigureAwait();
 
             if (result.IsSuccess)
                 return new AsyncCallResult<BigInteger?>(result.Data!.Value);
@@ -31,7 +31,7 @@ namespace StacksForce.Stacks.WebApi
 
         static public async Task<AsyncCallResult<T?>> ReadonlyGet<T>(this Blockchain chain, string address, string contract, string method, params Clarity.Value[] arguments) where T: Clarity.Value
         {
-            var result = await chain.CallReadOnly(address, contract, method, address, arguments).ConfigureAwait(false);
+            var result = await chain.CallReadOnly(address, contract, method, address, arguments).ConfigureAwait();
             if (result.IsSuccess)
                 return new AsyncCallResult<T?>(result.Data!.UnwrapUntil<T>());
 
@@ -53,7 +53,7 @@ namespace StacksForce.Stacks.WebApi
 
         protected async override Task<List<TransactionEvent>?> GetRange(long index, long count)
         {
-            var result = await _chain.GetTransactionEvents(_txId, (int) count, (int) index).ConfigureAwait(false);
+            var result = await _chain.GetTransactionEvents(_txId, (int) count, (int) index).ConfigureAwait();
             
             if (result.IsSuccess)
             {
@@ -76,12 +76,12 @@ namespace StacksForce.Stacks.WebApi
 
         protected async override Task<List<TransactionInfo>?> GetRange(long index, long count)
         {
-            var result = await _chain.GetRecentTransactions((uint) count, (uint) index, null, _unanchored).ConfigureAwait(false);
+            var result = await _chain.GetRecentTransactions((uint) count, (uint) index, null, _unanchored).ConfigureAwait();
             List<TransactionInfo> transactions = new List<TransactionInfo>();
             if (result.IsSuccess)
             {
                 var ids = result.Data.results.Select(x => x.tx_id).ToArray();
-                var transactionsWithEvents = await _chain.GetTransactionsDetails(ids, 0, 30, _unanchored).ConfigureAwait(false);
+                var transactionsWithEvents = await _chain.GetTransactionsDetails(ids, 0, 30, _unanchored).ConfigureAwait();
                 if (transactionsWithEvents.IsSuccess)
                 {
                     foreach (var t in transactionsWithEvents.Data)

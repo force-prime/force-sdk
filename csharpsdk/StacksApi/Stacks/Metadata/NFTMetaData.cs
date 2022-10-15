@@ -1,4 +1,5 @@
-﻿using StacksForce.Utils;
+﻿using StacksForce.Stacks.WebApi;
+using StacksForce.Utils;
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -7,7 +8,7 @@ namespace StacksForce.Stacks.Metadata
 {
     public class NFTMetaData
     {
-        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = new JsonSerializerOptions { IncludeFields = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
+        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = HttpAPIUtils.SERIALIZER_OPTIONS;
 
         private static readonly NFTMetaData Empty = new NFTMetaData();
 
@@ -35,7 +36,7 @@ namespace StacksForce.Stacks.Metadata
         static public async Task<NFTMetaData> FromUrl(string url)
         {
             url = HttpHelper.GetHttpUrlFrom(url);
-            var r = await HttpHelper.SendRequest(url).ConfigureAwait(false);
+            var r = await Dependencies.DependencyProvider.HttpClient.Get(url).ConfigureAwait();
             if (r.IsSuccess)
                 return FromJson(r.Data);
             else

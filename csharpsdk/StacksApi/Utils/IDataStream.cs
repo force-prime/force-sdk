@@ -57,14 +57,14 @@ namespace StacksForce.Utils
                 _prepared = true;
                 var prepareTask = Prepare();
                 if (prepareTask != null)
-                    await prepareTask.ConfigureAwait(false);
+                    await prepareTask.ConfigureAwait();
             }
 
             List<T> allItems = new List<T>();
 
             bool hasError = false;
 
-            var items = await GetRange(_index, count).ConfigureAwait(false);
+            var items = await GetRange(_index, count).ConfigureAwait();
             if (items != null)
             {
                 allItems.AddRange(items);
@@ -114,11 +114,11 @@ namespace StacksForce.Utils
                 return GetFromCache(index, count);
 
             if (_currentReadOp != null && !_currentReadOp.IsCompleted)
-                await _currentReadOp.ConfigureAwait(false);
+                await _currentReadOp.ConfigureAwait();
 
             _currentReadOp = GetRange(index, count);
 
-            var result = await _currentReadOp.ConfigureAwait(false);
+            var result = await _currentReadOp.ConfigureAwait();
             _currentReadOp = null;
 
             return result;
@@ -131,7 +131,7 @@ namespace StacksForce.Utils
                 return fromCache;
 
             index += fromCache.Count;
-            var res = await _dataStream!.ReadMoreAsync(count - fromCache.Count).ConfigureAwait(false);
+            var res = await _dataStream!.ReadMoreAsync(count - fromCache.Count).ConfigureAwait();
             if (res == null)
                 return null;
 
@@ -161,7 +161,7 @@ namespace StacksForce.Utils
 
             public async Task<List<T>?> ReadMoreAsync(int count)
             {
-                var res = await _stream.GetRangeThreaded(_index, count).ConfigureAwait(false);
+                var res = await _stream.GetRangeThreaded(_index, count).ConfigureAwait();
                 if (res != null)
                     _index += res.Count;
                 return res;

@@ -16,7 +16,7 @@ namespace StacksForce.Stacks.WebApi
                 { "offset", offset }
             };
 
-            return HttpAPIUtils.PerformHttpRequest<GetRecentMicroblocksResponse>(methodName, getFields, null);
+            return HttpAPIUtils.GetRequest<GetRecentMicroblocksResponse>(methodName, getFields);
         }
 
         public class GetRecentMicroblocksResponse

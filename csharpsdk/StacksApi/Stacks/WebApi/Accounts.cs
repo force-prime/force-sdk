@@ -16,7 +16,7 @@ namespace StacksForce.Stacks.WebApi
                 { "until_block", until_block }
             };
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetSTXBalanceResponse>(methodName, getFields, null);
+            return HttpAPIUtils.GetRequest<GetSTXBalanceResponse>(methodName, getFields);
         }
 
         // https://docs.hiro.so/api#tag/Accounts/operation/get_account_balance
@@ -29,7 +29,7 @@ namespace StacksForce.Stacks.WebApi
                 { "until_block", until_block }
             };
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetBalancesResponse>(methodName, getFields, null);
+            return HttpAPIUtils.GetRequest<GetBalancesResponse>(methodName, getFields);
         }
 
         // https://docs.hiro.so/api#tag/Accounts/operation/get_account_nonces
@@ -37,7 +37,7 @@ namespace StacksForce.Stacks.WebApi
         {
             string methodName = $"{chain.Endpoint}extended/v1/address/{address}/nonces";
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetLastNonceResponse>(methodName, null, null);
+            return HttpAPIUtils.GetRequest<GetLastNonceResponse>(methodName);
         }
 
         // https://docs.hiro.so/api#tag/Accounts/operation/get_account_inbound
@@ -52,7 +52,7 @@ namespace StacksForce.Stacks.WebApi
                 { "until_block", until_block }
             };
 
-            return HttpAPIUtils.PerformHttpRequest<GetInboundStxTransfersResponse>(methodName, getFields, null);
+            return HttpAPIUtils.GetRequest<GetInboundStxTransfersResponse>(methodName, getFields);
         }
 
         public class GetInboundStxTransfersResponse : HttpAPIUtils.JsonDataBase

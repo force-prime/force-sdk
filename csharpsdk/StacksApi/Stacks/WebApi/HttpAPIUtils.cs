@@ -1,9 +1,7 @@
-﻿using StacksForce.Utils;
+﻿using StacksForce.Dependencies;
+using StacksForce.Utils;
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -11,32 +9,31 @@ namespace StacksForce.Stacks.WebApi
 {
     public static class HttpAPIUtils
     {
-        private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpHelper.NRetryStrategy(0, 3000);
+        private static IHttpClient HTTP => DependencyProvider.HttpClient;
 
-        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = new JsonSerializerOptions { IncludeFields = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
+        public static readonly JsonSerializerOptions SERIALIZER_OPTIONS = new JsonSerializerOptions { IncludeFields = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
 
-        static public Task<AsyncCallResult<T>> PerformHttpRequestJsonContent<T>(string url, Dictionary<string, object?>? getFields, object? obj2JsonContent) where T : class
-        {
-            // we need to remove UTF-8 encoding part otherwise API doesn't accept it
-            var content = obj2JsonContent != null ?
-                JsonContent.Create(obj2JsonContent, new MediaTypeHeaderValue("application/json"), SERIALIZER_OPTIONS) : null;
-
-            return PerformHttpRequest<T>(url, getFields, content);
-        }
-
-        static public Task<AsyncCallResult<T>> PerformHttpRequestBinaryContent<T>(string url, Dictionary<string, object?>? getFields, byte[] content) where T : class
-        {
-            var httpContent = new ByteArrayContent(content);
-            httpContent.Headers.Clear();
-            httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            return PerformHttpRequest<T>(url, getFields, httpContent);
-        }
-
-        static public async Task<AsyncCallResult<T>> PerformHttpRequest<T>(string url, Dictionary<string, object?>? getFields = null, HttpContent? content = null) 
+        static public Task<AsyncCallResult<T>> PostJson<T>(string url, Dictionary<string, object?>? getFields, object obj2JsonContent) where T : class
         {
             url = getFields == null ? url : HttpHelper.BuildUrl(url, getFields);
+            return HandleHttpRequest<T>(HTTP.PostJson(url, obj2JsonContent));
+        }
 
-            var result = await HttpHelper.SendRequest(url, content, DEFAULT_RETRY_STRATEGY).ConfigureAwait(false);
+        static public Task<AsyncCallResult<T>> PostBinary<T>(string url, Dictionary<string, object?>? getFields, byte[] content) where T : class
+        {
+            url = getFields == null ? url : HttpHelper.BuildUrl(url, getFields);
+            return HandleHttpRequest<T>(HTTP.PostBinary(url, content));
+        }
+
+        static public Task<AsyncCallResult<T>> GetRequest<T>(string url, Dictionary<string, object?>? getFields = null)
+        {
+            url = getFields == null ? url : HttpHelper.BuildUrl(url, getFields);
+            return HandleHttpRequest<T>(HTTP.Get(url));
+        }
+
+        static private async Task<AsyncCallResult<T>> HandleHttpRequest<T>(Task<AsyncCallResult<string>> request)
+        {
+            var result = await request.ConfigureAwait();
             if (result.IsError)
             {
                 if (result.Error is HttpError httpError && httpError.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -51,11 +48,10 @@ namespace StacksForce.Stacks.WebApi
                 return new AsyncCallResult<T>(result.Error!);
             }
 
-
             if (typeof(T) == typeof(string))
             {
                 object o = result.Data.Trim('"');
-                return new AsyncCallResult<T>((T) o);
+                return new AsyncCallResult<T>((T)o);
             }
 
             if (typeof(T) == typeof(ulong))

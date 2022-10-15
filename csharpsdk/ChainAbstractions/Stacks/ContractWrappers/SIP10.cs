@@ -45,7 +45,7 @@ namespace ChainAbstractions.Stacks.ContractWrappers
                 new PostCondition[]
                 {
                     new FungibleTokenPostCondition(sender, new AssetInfo(address, contract, token), FungibleConditionCode.Equal, amount),
-                }).ConfigureAwait(false);
+                }).ConfigureAwait();
 
             return new StacksAbstractions.TransactionWrapper(manager, transaction);
         }
@@ -61,7 +61,7 @@ namespace ChainAbstractions.Stacks.ContractWrappers
         {
             var chain = StacksAbstractions.FromAddress(_address);
 
-            var result = await WebApiHelpers.ReadonlyGetUlong(chain.AsStacksBlockchain(), _address, _contract, "get-decimals").ConfigureAwait(false);
+            var result = await WebApiHelpers.ReadonlyGetUlong(chain.AsStacksBlockchain(), _address, _contract, "get-decimals").ConfigureAwait();
 
             if (result.IsError)
                 return new AsyncCallResult<uint>(result.Error!);

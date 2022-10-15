@@ -42,7 +42,7 @@ namespace ChainAbstractions.Stacks.ContractWrappers
                 new PostCondition[]
                 {
                     new NFTPostCondition(recepient, new AssetInfo(address, contract, nft), NonFungibleConditionCode.Owns, tokenId)
-                }).ConfigureAwait(false);
+                }).ConfigureAwait();
 
             return new StacksAbstractions.TransactionWrapper(manager, transaction);
         }
@@ -56,7 +56,7 @@ namespace ChainAbstractions.Stacks.ContractWrappers
         static public async Task<AsyncCallResult<string?>> GetTokenOwner(string address, string contract, TokenIdType tokenId)
         {
             var chain = StacksAbstractions.FromAddress(address);
-            var owner = await WebApiHelpers.ReadonlyGet<Clarity.Principal>(chain.AsStacksBlockchain(), address, contract, "get-owner", tokenId).ConfigureAwait(false);
+            var owner = await WebApiHelpers.ReadonlyGet<Clarity.Principal>(chain.AsStacksBlockchain(), address, contract, "get-owner", tokenId).ConfigureAwait();
             if (owner.IsSuccess)
                 return owner.Data != null ? new AsyncCallResult<string?>(owner.Data!.ToString()) : new AsyncCallResult<string?>((string?)null);
             return new AsyncCallResult<string?>(owner.Error!);

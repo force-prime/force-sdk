@@ -1,6 +1,9 @@
 ﻿using StacksForce.Stacks;
 using StacksForce.Stacks.ChainTransactions;
+using StacksForce.Stacks.Metadata;
 using System;
+using System.Threading.Tasks;
+using static ChainAbstractions.Stacks.NFTUtils;
 
 namespace ChainAbstractions.Stacks
 {
@@ -32,6 +35,27 @@ namespace ChainAbstractions.Stacks
             if (transaction is TransactionWrapper impl)
                 return impl._info != null ? impl._info.StacksExplorerLink : null;
             throw new ArgumentException("Incorrect transaction argument");
+        }
+
+        static public Clarity.Value GetNFTId(this INFT nft)
+        {
+            if (nft is NFT n)
+                return n.Id;
+            throw new ArgumentException("Incorrect nft argument");
+        }
+
+        static public string GetNFTTypeId(this INFT nft)
+        {
+            if (nft is NFT n)
+                return n.AssetTypeId;
+            throw new ArgumentException("Incorrect nft argument");
+        }
+
+        static public Task<NFTMetaData?> RetrieveMetaData(this INFT nft)
+        {
+            if (nft is NFT n)
+                return n.GetMetaData();
+            throw new ArgumentException("Incorrect nft argument");
         }
     }
 }

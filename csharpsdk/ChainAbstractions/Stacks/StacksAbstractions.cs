@@ -55,8 +55,7 @@ namespace ChainAbstractions.Stacks
                 {Blockchains.Testnet, TestNet },
             };
 
-            if (StacksForce.Dependencies.DependencyProvider.Cryptography == null)
-                StacksDependencies.SetupDefault();
+            StacksDependencies.SetupDefault();
         }
     }
 }

@@ -16,7 +16,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
             if (fee == 0)
             {
-                fee = await GetApproximateFee(chain, t).ConfigureAwait(false);
+                fee = await GetApproximateFee(chain, t).ConfigureAwait();
             }
 
             if (fee == 0)
@@ -26,7 +26,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
             if (nonce == 0)
             {
-                var lastNonceResult = await chain.GetLastNonce(account.GetAddress(chain.GetAddressVersion())).ConfigureAwait(false);
+                var lastNonceResult = await chain.GetLastNonce(account.GetAddress(chain.GetAddressVersion())).ConfigureAwait();
                 if (lastNonceResult.IsError)
                     return new AsyncCallResult<Transaction>(lastNonceResult.Error!);
 
@@ -47,7 +47,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         static public async Task<AsyncCallResult<string>> RunTransaction(this Blockchain chain, StacksAccount account, Transaction transaction)
         {
-            var r = await Prepare(chain, account, transaction).ConfigureAwait(false);
+            var r = await Prepare(chain, account, transaction).ConfigureAwait();
             if (r.IsError)
                 return new AsyncCallResult<string>(r.Error);
 
@@ -57,7 +57,7 @@ namespace StacksForce.Stacks.ChainTransactions
         static public async Task<uint> GetApproximateFee(Blockchain chain, Transaction t)
         {
             var serialized = t.Serialize();
-            var feeResults = await chain.GetTransactionApproximateFee(t.Payload.ToHexString(), (uint) serialized.Length).ConfigureAwait(false);
+            var feeResults = await chain.GetTransactionApproximateFee(t.Payload.ToHexString(), (uint) serialized.Length).ConfigureAwait();
             if (feeResults.IsError)
                 return 0;
 
@@ -67,7 +67,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         static public async Task<AsyncCallResult<List<TransactionInfo>>> GetTransactions(Blockchain chain, string address)
         {
-            var result = await chain.GetAddressMempoolTransactions(address).ConfigureAwait(false);
+            var result = await chain.GetAddressMempoolTransactions(address).ConfigureAwait();
             if (result.IsError)
                 return new AsyncCallResult<List<TransactionInfo>>(result.Error!);
 
@@ -85,7 +85,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         static public async Task<AsyncCallResult<List<TransferTransactionInfo>>> GetStxTransactions(Blockchain chain, string address, bool incoming = true, bool outgoing = true)
         {
-            var result = await GetTransactions(chain, address).ConfigureAwait(false);
+            var result = await GetTransactions(chain, address).ConfigureAwait();
             if (result.IsError)
                 return new AsyncCallResult<List<TransferTransactionInfo>>(result.Error!);
 

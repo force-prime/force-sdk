@@ -47,7 +47,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public async Task<Error?> FetchFromMempool()
         {
-            var result = await Chain.GetMempoolTransactions(Sender.GetAddress(Chain.GetAddressVersion())).ConfigureAwait(false);
+            var result = await Chain.GetMempoolTransactions(Sender.GetAddress(Chain.GetAddressVersion())).ConfigureAwait();
             if (result.IsError)
                 return result.Error!;
 
@@ -81,12 +81,12 @@ namespace StacksForce.Stacks.ChainTransactions
 
             t.UpdateFeeAndNonce(newFee, t.Nonce);
 
-            return await Run(t).ConfigureAwait(false);
+            return await Run(t).ConfigureAwait();
         }
 
         public async Task<AsyncCallResult<TransactionInfo>> Run(Transaction transaction)
         {
-            var result = await Chain.RunTransaction(Sender, transaction).ConfigureAwait(false);
+            var result = await Chain.RunTransaction(Sender, transaction).ConfigureAwait();
             if (result.IsError)
                 return new AsyncCallResult<TransactionInfo>(result.Error!);
 

@@ -2,6 +2,7 @@
 using StacksForce.Stacks;
 using StacksForce.Stacks.Metadata;
 using System.Threading.Tasks;
+using StacksForce.Utils;
 
 namespace ChainAbstractions.Stacks
 {
@@ -10,7 +11,7 @@ namespace ChainAbstractions.Stacks
         static public async Task<NFTMetaData?> GetMetaData(string address, string contract, Clarity.Value id)
         {
             var chain = StacksAbstractions.FromAddress(address);
-            var uri = await chain.AsStacksBlockchain().ReadonlyGetString(address, contract, "get-token-uri", id).ConfigureAwait(false);
+            var uri = await chain.AsStacksBlockchain().ReadonlyGetString(address, contract, "get-token-uri", id).ConfigureAwait();
             if (uri.IsSuccess)
             {
                 var uriStr = uri.Data;
@@ -20,7 +21,7 @@ namespace ChainAbstractions.Stacks
                     {
                         uriStr = uriStr.Replace("{id}", id.ToString());
                     }
-                    return await NFTMetaData.FromUrl(uriStr).ConfigureAwait(false);
+                    return await NFTMetaData.FromUrl(uriStr).ConfigureAwait();
                 }
             }
             return null;
@@ -28,39 +29,58 @@ namespace ChainAbstractions.Stacks
 
         static public async Task<INFT> GetFrom(string address, string contract, string nft, Clarity.Value id)
         {
-            NFTMetaData? metaData = await GetMetaData(address, contract, id).ConfigureAwait(false);
+            NFTMetaData? metaData = await GetMetaData(address, contract, id).ConfigureAwait();
 
             var name = nft;
             var description = string.Empty;
             var image = string.Empty;
 
+            var assetTypeId = $"{address}.{contract}::{nft}";
+            var result = new NFT(assetTypeId, id, name, description, image);
 
             if (metaData != null)
-            {
-                if (!string.IsNullOrEmpty(metaData.Name))
-                    name = metaData.Name;
+                result.UpdateFromMetaData(metaData);
 
-                if (!string.IsNullOrEmpty(metaData.Description))
-                    description = metaData.Description;
-
-                if (!string.IsNullOrEmpty(metaData.Image))
-                    image = metaData.Image;
-            }
-
-            return new NFT(name, description, image);
+            return result;
         }
 
         public class NFT : INFT
         {
-            public string Description { get; }
-            public string ImageUrl { get; }
-            public string Name { get; }
+            public string AssetTypeId { get; }
+            public Clarity.Value Id { get; }
 
-            public NFT(string name, string description, string imageUrl)
+            public string Description { get; private set; }
+            public string ImageUrl { get; private set; }
+            public string Name { get; private set; }
+
+            public NFT(string assetTypeId, Clarity.Value id, string name, string description, string imageUrl)
             {
+                AssetTypeId = assetTypeId;
+                Id = id;
                 Name = name;
                 Description = description;
                 ImageUrl = imageUrl;
+            }
+
+            public void UpdateFromMetaData(NFTMetaData metaData)
+            {
+                if (!string.IsNullOrEmpty(metaData.Name))
+                    Name = metaData.Name;
+
+                if (!string.IsNullOrEmpty(metaData.Description))
+                    Description = metaData.Description;
+
+                if (!string.IsNullOrEmpty(metaData.Image))
+                    ImageUrl = metaData.Image;
+            }
+
+            public async Task<NFTMetaData?> GetMetaData()
+            {
+                var typeId = Address.ParseFromFullTokenId(AssetTypeId);
+                var metaData = await NFTUtils.GetMetaData(typeId.address, typeId.contract, Id).ConfigureAwait();
+                if (metaData != null)
+                    UpdateFromMetaData(metaData);
+                return metaData;
             }
         }
     }

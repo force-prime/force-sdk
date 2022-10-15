@@ -16,7 +16,7 @@ namespace StacksForce.Stacks.WebApi
                 { "offset", offset },
             };
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetMempoolTransactionsResponse>(methodName, requestData, null);
+            return HttpAPIUtils.GetRequest<GetMempoolTransactionsResponse>(methodName, requestData);
         }
 
         // https://docs.hiro.so/api#tag/Transactions/operation/get_mempool_transaction_list
@@ -32,7 +32,7 @@ namespace StacksForce.Stacks.WebApi
                 { "offset", offset },
             };
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetMempoolTransactionsResponse>(methodName, requestData, null);
+            return HttpAPIUtils.GetRequest<GetMempoolTransactionsResponse>(methodName, requestData);
         }
 
         // https://docs.hiro.so/api#tag/Transactions/operation/get_transaction_list
@@ -47,7 +47,7 @@ namespace StacksForce.Stacks.WebApi
                 { "unanchored", unanchored },
             };
 
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetRecentTransactionsResponse>(methodName, requestData, null);
+            return HttpAPIUtils.GetRequest<GetRecentTransactionsResponse>(methodName, requestData);
         }
 
         // https://docs.hiro.so/api#tag/Transactions/operation/post_core_node_transactions
@@ -55,7 +55,7 @@ namespace StacksForce.Stacks.WebApi
         {
             string methodName = chain.Endpoint + "v2/transactions";
 
-            return HttpAPIUtils.PerformHttpRequestBinaryContent<string>(methodName, null, rawData);
+            return HttpAPIUtils.PostBinary<string>(methodName, null, rawData);
         }
 
         // https://docs.hiro.so/api#tag/Fees/operation/get_fee_transfer
@@ -63,7 +63,7 @@ namespace StacksForce.Stacks.WebApi
         {
             string methodName = chain.Endpoint + "v2/fees/transfer";
 
-            return HttpAPIUtils.PerformHttpRequest<ulong>(methodName);
+            return HttpAPIUtils.GetRequest<ulong>(methodName);
         }
 
         //https://docs.hiro.so/api#tag/Fees/operation/post_fee_transaction
@@ -75,7 +75,7 @@ namespace StacksForce.Stacks.WebApi
                 transaction_payload = transactionPayload,
                 estimated_len = estimatedLen
             };
-            return HttpAPIUtils.PerformHttpRequestJsonContent<GetTransactionApproximateFeeResponse>(methodName, null, data);
+            return HttpAPIUtils.PostJson<GetTransactionApproximateFeeResponse>(methodName, null, data);
         }
 
         // https://docs.hiro.so/api#tag/Accounts/operation/get_single_transaction_with_transfers
@@ -83,7 +83,7 @@ namespace StacksForce.Stacks.WebApi
         {
             string methodName = chain.Endpoint + $"extended/v1/address/{principal}/{txId}/with_transfers";
 
-            return HttpAPIUtils.PerformHttpRequest<GetPrincipalTransactionDetailsReponse>(methodName, null, null);
+            return HttpAPIUtils.GetRequest<GetPrincipalTransactionDetailsReponse>(methodName);
         }
 
         // https://docs.hiro.so/api#tag/Transactions/operation/get_tx_list_details
@@ -98,7 +98,7 @@ namespace StacksForce.Stacks.WebApi
                 { "unanchored", unanchored },
             };
 
-            return HttpAPIUtils.PerformHttpRequest<GetTransactionDetailsReponse>(methodName, requestData, null);
+            return HttpAPIUtils.GetRequest<GetTransactionDetailsReponse>(methodName, requestData);
         }
 
         // https://docs.hiro.so/api#tag/Transactions/operation/get_filtered_events
@@ -112,7 +112,7 @@ namespace StacksForce.Stacks.WebApi
                 { "limit", limit },
             };
 
-            return HttpAPIUtils.PerformHttpRequest<GetTransactionEventsResponse>(methodName, requestData, null);
+            return HttpAPIUtils.GetRequest<GetTransactionEventsResponse>(methodName, requestData);
         }
 
         public class GetTransactionDetailsReponse : Dictionary<string, GetTransactionDetailsReponse.Result>

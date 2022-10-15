@@ -9,7 +9,7 @@ namespace StacksForce.Stacks.Metadata
 {
     public class FungibleTokenMetaData
     {
-        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = new JsonSerializerOptions { IncludeFields = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
+        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = HttpAPIUtils.SERIALIZER_OPTIONS;
 
         private static readonly FungibleTokenMetaData Empty = new FungibleTokenMetaData();
 
@@ -41,15 +41,15 @@ namespace StacksForce.Stacks.Metadata
             if (addressAndContract.Length != 2)
                 throw new ArgumentException("Incorrect token contract id");
 
-            var result = await chain.GetFungibleTokenMetadata(tokenContractId).ConfigureAwait(false);
+            var result = await chain.GetFungibleTokenMetadata(tokenContractId).ConfigureAwait();
             if (result.IsSuccess)
             {
                 var d = result.Data;
-                var imageUrl = String.IsNullOrEmpty(d.image_uri) ? d.image_canonical_uri : d.image_uri;
+                var imageUrl = string.IsNullOrEmpty(d.image_uri) ? d.image_canonical_uri : d.image_uri;
                 var description = d.description;
                 if (string.IsNullOrEmpty(imageUrl) && !string.IsNullOrEmpty(d.token_uri))
                 {
-                    var tokenDataFromFile = await HttpHelper.SendRequest(HttpHelper.GetHttpUrlFrom(d.token_uri)).ConfigureAwait(false);
+                    var tokenDataFromFile = await Dependencies.DependencyProvider.HttpClient.Get(HttpHelper.GetHttpUrlFrom(d.token_uri)).ConfigureAwait();
                     if (tokenDataFromFile.IsSuccess)
                     {
                         try
@@ -76,11 +76,11 @@ namespace StacksForce.Stacks.Metadata
                 return new FungibleTokenMetaData { Currency = d.symbol, Name = d.name, Description = description, Image = imageUrl, Decimals = d.decimals };
             } else
             {
-                var symbolResult = await chain.ReadonlyGetString(addressAndContract[0], addressAndContract[1], "get-symbol").ConfigureAwait(false);
+                var symbolResult = await chain.ReadonlyGetString(addressAndContract[0], addressAndContract[1], "get-symbol").ConfigureAwait();
                 if (symbolResult.IsSuccess && !string.IsNullOrEmpty(symbolResult.Data))
                 {
-                    var nameResult = await chain.ReadonlyGetString(addressAndContract[0], addressAndContract[1], "get-name").ConfigureAwait(false);
-                    var decimalsResult = await chain.ReadonlyGetUlong(addressAndContract[0], addressAndContract[1], "get-decimals").ConfigureAwait(false);
+                    var nameResult = await chain.ReadonlyGetString(addressAndContract[0], addressAndContract[1], "get-name").ConfigureAwait();
+                    var decimalsResult = await chain.ReadonlyGetUlong(addressAndContract[0], addressAndContract[1], "get-decimals").ConfigureAwait();
                     return new FungibleTokenMetaData { Currency = symbolResult.Data, Name = nameResult.Data, Decimals = decimalsResult.IsSuccess ? (uint) decimalsResult.Data : 0 };
                 }
             }
@@ -91,7 +91,7 @@ namespace StacksForce.Stacks.Metadata
         {
             string? data = null;
             url = HttpHelper.GetHttpUrlFrom(url);
-            var r = await HttpHelper.SendRequest(url).ConfigureAwait(false);
+            var r = await Dependencies.DependencyProvider.HttpClient.Get(url).ConfigureAwait();
             if (r.IsSuccess)
                 data = r.Data;
             return FromJson(data);

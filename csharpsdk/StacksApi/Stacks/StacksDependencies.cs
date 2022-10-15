@@ -2,10 +2,16 @@
 using NBitcoin;
 using Org.BouncyCastle.Crypto.Digests;
 using StacksForce.Dependencies;
+using StacksForce.Stacks.WebApi;
 using StacksForce.Utils;
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace StacksForce.Stacks
 {
@@ -13,9 +19,46 @@ namespace StacksForce.Stacks
     {
         static public void SetupDefault()
         {
-            Dependencies.DependencyProvider.Cryptography = new DefaultCryptography();
-            Dependencies.DependencyProvider.HDKey = new DefaultHDKey();
-            Dependencies.DependencyProvider.BIP39 = new DefaultBIP39();
+            if (DependencyProvider.Cryptography == null)
+                DependencyProvider.Cryptography = new DefaultCryptography();
+            if (DependencyProvider.HDKey == null)
+                DependencyProvider.HDKey = new DefaultHDKey();
+            if (DependencyProvider.BIP39 == null)
+                DependencyProvider.BIP39 = new DefaultBIP39();
+            if (DependencyProvider.HttpClient == null)
+                DependencyProvider.HttpClient = new DefaultHttpClient();
+        }
+
+        private class DefaultHttpClient : IHttpClient
+        {
+            private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpHelper.NRetryStrategy(0, 3000);
+
+            private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = HttpAPIUtils.SERIALIZER_OPTIONS;
+
+            public Task<AsyncCallResult<string>> Get(string uri)
+            {
+                return HttpHelper.SendRequest(uri, null, DEFAULT_RETRY_STRATEGY);
+            }
+
+            public Task<AsyncCallResult<string>> Post(string uri)
+            {
+                return PostJson(uri, new { }); // force post
+            }
+
+            public Task<AsyncCallResult<string>> PostBinary(string uri, byte[] bytes)
+            {
+                var content = new ByteArrayContent(bytes);
+                content.Headers.Clear();
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                return HttpHelper.SendRequest(uri, content, DEFAULT_RETRY_STRATEGY);
+            }
+
+            public Task<AsyncCallResult<string>> PostJson(string uri, object json)
+            {
+                var content = JsonContent.Create(json, new MediaTypeHeaderValue("application/json"), SERIALIZER_OPTIONS);
+                return HttpHelper.SendRequest(uri, content, DEFAULT_RETRY_STRATEGY);
+            }
         }
 
         private class DefaultCryptography : ICryptography

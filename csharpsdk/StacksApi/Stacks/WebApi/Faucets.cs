@@ -15,7 +15,7 @@ namespace StacksForce.Stacks.WebApi
                 { "address", address },
             };
 
-            var result = await HttpAPIUtils.PerformHttpRequestJsonContent<GetSTXTestnetTokensResult>(methodName, getFields, new { });
+            var result = await HttpAPIUtils.PostJson<GetSTXTestnetTokensResult>(methodName, getFields, new { });
             if (result.IsError)
                 return new AsyncCallResult<string>(result.Error!);
             return new AsyncCallResult<string>(result.Data.txId);

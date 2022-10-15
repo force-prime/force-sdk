@@ -1,4 +1,5 @@
 ﻿using StacksForce.Stacks.WebApi;
+using StacksForce.Utils;
 using System.Collections.Concurrent;
 
 namespace StacksForce.Stacks.ChainTransactions
@@ -31,7 +32,7 @@ namespace StacksForce.Stacks.ChainTransactions
         {
             foreach (var info in _id2Info.Values)
             {
-                await info.Refresh().ConfigureAwait(false);
+                await info.Refresh().ConfigureAwait();
                 RemoveCompletedAndAnchored(info);
             }
         }
@@ -42,7 +43,7 @@ namespace StacksForce.Stacks.ChainTransactions
             {
                 // TODO: status is not reported correctly (always pending), at least for test net nodes
                 // info.UpdateStatus(status);
-                await info.Refresh().ConfigureAwait(false);
+                await info.Refresh().ConfigureAwait();
                 RemoveCompletedAndAnchored(info);
             }
         }

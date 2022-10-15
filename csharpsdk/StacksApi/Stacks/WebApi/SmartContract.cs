@@ -17,7 +17,7 @@ namespace StacksForce.Stacks.WebApi
 
             var request = new CallReadOnlyRequest { sender = txSender, arguments = arguments.Select(x => x.AsHex()).ToArray() ?? EMPTY_STRING_ARRAY };
 
-            var result = await HttpAPIUtils.PerformHttpRequestJsonContent<CallReadOnlyResponse>(methodName, null, request);
+            var result = await HttpAPIUtils.PostJson<CallReadOnlyResponse>(methodName, null, request);
             if (result.IsSuccess && !result.Data!.okay)
                 return new AsyncCallResult<Clarity.Value>(new Error("error", result.Data.cause));
 
