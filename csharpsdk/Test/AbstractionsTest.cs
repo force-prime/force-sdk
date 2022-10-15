@@ -34,7 +34,7 @@ namespace StacksForceTest
             Assert.Equal("GACU", symbolResult.Data);
 
             var decimalsResult = await sip10.GetDecimals().ConfigureAwait(false);
-            Assert.Equal((uint) 0, decimalsResult.Data);
+            Assert.Equal((uint)0, decimalsResult.Data);
 
             var uriResult = await sip10.GetTokenUri().ConfigureAwait(false);
             Assert.True(uriResult.IsSuccess);

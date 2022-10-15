@@ -1,4 +1,7 @@
-﻿namespace StacksForce.Dependencies
+﻿using StacksForce.Utils;
+using System.Threading.Tasks;
+
+namespace StacksForce.Dependencies
 {
     public interface IBIP39
     {
@@ -18,6 +21,13 @@
         byte[] PublicKey { get; }
         byte[] PrivateKey { get; }
         string ExtendedPrivateKey { get; }
+    }
+
+    public interface IHttpClient
+    {
+        Task<AsyncCallResult<string>> Get(string uri);
+        Task<AsyncCallResult<string>> PostBinary(string uri, byte[] bytes);
+        Task<AsyncCallResult<string>> PostJson(string uri, object json);
     }
 
     public interface ICryptography
