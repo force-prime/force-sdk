@@ -2,10 +2,10 @@
 
 1) Since SDK targets .NET Standard 2.1 Unity 2021.2 or newer is required.
 
-2) Current Unity distribution already contains Newtonsoft.Json assembly,
-that's why it excluded from SDK libraries explicitly
+2) Current Unity distribution already contains Newtonsoft.Json assembly and some others,
+don't import them to Unity project or delete (in Unity editor shows conflicting assemblies)
 
-3) Run for ChainAbstractions or StacksApi project
+3) Run for ChainAbstractions or StacksApi project to build and collect all necessary assemblies
     ```
     dotnet publish -c Release
     ```
@@ -15,3 +15,5 @@ that's why it excluded from SDK libraries explicitly
     ```
 
 5) You might need to turn of 'Assembly Version Validation' in Unity Project Settings (Player section)
+
+6) For WebGL builds you need to use Unity web requests and single threaded mode (see ForceSDK.cs in UnitySample)

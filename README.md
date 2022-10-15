@@ -58,6 +58,7 @@ MAUISample can be installed on Android/iOS devices and more.
 \
 Read more about [`MAUI`](https://docs.microsoft.com/en-us/dotnet/maui/what-is-maui)
 3) Explore ShopSample project, read [`instructions`](https://github.com/stacks-force/force-sdk/tree/main/docs/shop.md)
+4) Explore simple but addictive [`Unity game`](https://github.com/stacks-force/force-sdk/tree/main/csharpsdk/UnitySample), read [`instructions`](https://github.com/stacks-force/force-sdk/tree/main/docs/how-to-unity.md)
 
 ### Our discord channel dedicated to .NET and Stacks development:
 https://discord.gg/2hmpTGCu6y
