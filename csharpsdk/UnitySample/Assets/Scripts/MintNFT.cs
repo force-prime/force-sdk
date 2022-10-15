@@ -12,7 +12,7 @@ static public class MintNFT
     static public string NFT_ID = $"{CONTRACT_ADDRESS}.{CONTRACT_NAME}::{NFT_NAME}";
 
     private const string CONTRACT_ADDRESS = "SP137KE5TWH59D3N53KD5MXM4TZP2FPQD2VCTXV43";
-    private const string CONTRACT_NAME = "flappy-result-nft";
+    private const string CONTRACT_NAME = "flappy-result-nft-v3";
     private const string NFT_NAME = "FLAPPY-RESULT-NFT";
     private const string METHOD_NAME = "mint";
 
