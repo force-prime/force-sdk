@@ -37,24 +37,32 @@ namespace StacksForce.Stacks.ChainTransactions
             }
         }
 
-        private async void OnTxUpdated(string txId, TransactionStatus status)
+        private async void OnTxUpdated(TransactionInfo info)
         {
-            if (_id2Info.TryGetValue(txId, out var info))
+            var txId = info.TxId;
+
+            if (_id2Info.TryGetValue(txId, out info))
             {
-                // TODO: status is not reported correctly (always pending), at least for test net nodes
-                // info.UpdateStatus(status);
-                await info.Refresh().ConfigureAwait();
-                RemoveCompletedAndAnchored(info);
+                if (!RemoveCompletedAndAnchored(info))
+                {
+                    await info.Refresh().ConfigureAwait();
+                    RemoveCompletedAndAnchored(info);
+                }
             }
         }
 
-        private void RemoveCompletedAndAnchored(TransactionInfo transactionInfo)
+        private bool RemoveCompletedAndAnchored(TransactionInfo transactionInfo)
         {
             if (transactionInfo.Status == TransactionStatus.Undefined || transactionInfo.Status == TransactionStatus.Pending)
-                return;
+                return false;
 
             if (transactionInfo.Status != TransactionStatus.Success || transactionInfo.IsAnchored)
+            {
                 _id2Info.TryRemove(transactionInfo.TxId, out var _);
+                return true;
+            }
+
+            return false;
         }
     }
 

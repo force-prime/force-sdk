@@ -55,7 +55,13 @@ namespace StacksForce.Utils
             else
             {
                 OnNotificationRaw?.Invoke(response.method, response.@params);
-                HandleNotification(response);
+                try
+                {
+                    HandleNotification(response);
+                } catch (Exception e)
+                {
+                    Log.Warning($"JsonRpcServiceBase: Failed to handle reponse {response}, e = {e.Message}");
+                }
             }
         }
 
@@ -88,7 +94,7 @@ namespace StacksForce.Utils
         {
             public ulong id;
             public Error? error;
-            public object? result;
+            public JsonElement? result;
             public string method;
             public JsonElement? @params;
 

@@ -63,6 +63,27 @@ namespace StacksForce.Stacks.WebApi
         }
     }
 
+    public class BlockTransactionsStream : BasicDataStream<TransactionInfo>
+    {
+        private readonly Blockchain _chain;
+        private readonly uint _blockHeight;
+
+        public BlockTransactionsStream(Blockchain chain, uint blockHeight)
+        {
+            _chain = chain;
+            _blockHeight = blockHeight;
+        }
+
+        protected async override Task<List<TransactionInfo>?> GetRange(long index, long count)
+        {
+            var result = await _chain.GetBlockTransactions(_blockHeight, (int) count, (int)index).ConfigureAwait();
+            if (result.IsError)
+                return null;
+
+            return result.Data.results.Select(x => TransactionInfo.FromData(_chain, x)).ToList();
+        }
+    }
+
     public class TransactionInfoStream : BasicDataStream<TransactionInfo>
     {
         private readonly Blockchain _chain;

@@ -87,7 +87,7 @@ namespace StacksForce.Stacks.WebApi
         }
 
         // https://docs.hiro.so/api#tag/Transactions/operation/get_tx_list_details
-        static public Task<AsyncCallResult<GetTransactionDetailsReponse>> GetTransactionsDetails(this Blockchain chain, string[] txIds, uint eventOffset = 0, uint eventLimit = 96, bool unanchored = false)
+        static public Task<AsyncCallResult<GetTransactionDetailsReponse>> GetTransactionsDetails(this Blockchain chain, string[] txIds, uint eventOffset = 0, uint eventLimit = 50, bool unanchored = false)
         {
             string methodName = chain.Endpoint + "extended/v1/tx/multiple";
 
@@ -113,6 +113,26 @@ namespace StacksForce.Stacks.WebApi
             };
 
             return HttpAPIUtils.GetRequest<GetTransactionEventsResponse>(methodName, requestData);
+        }
+
+
+        // https://docs.hiro.so/api#tag/Transactions/operation/get_transactions_by_block_height
+        static public Task<AsyncCallResult<GetBlockTransactionsResponse>> GetBlockTransactions(this Blockchain chain, uint blockHeight, int limit = 20, int offset = 0)
+        {
+            string methodName = chain.Endpoint + $"extended/v1/tx/block_height/{blockHeight}";
+
+            var requestData = new Dictionary<string, object?> {
+                { "unanchored", false },
+                { "offset", offset },
+                { "limit", limit },
+            };
+
+            return HttpAPIUtils.GetRequest<GetBlockTransactionsResponse>(methodName, requestData);
+        }
+
+        public class GetBlockTransactionsResponse
+        {
+            public TransactionData[] results;
         }
 
         public class GetTransactionDetailsReponse : Dictionary<string, GetTransactionDetailsReponse.Result>
@@ -185,6 +205,7 @@ namespace StacksForce.Stacks.WebApi
             public string tx_type;
             public ulong fee_rate;
             public bool is_unanchored;
+            public uint block_height;
             public long burn_block_time;
             public string sender_address;
             public string microblock_hash;

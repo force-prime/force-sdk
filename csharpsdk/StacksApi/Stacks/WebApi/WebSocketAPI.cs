@@ -1,7 +1,10 @@
-﻿using StacksForce.Utils;
+﻿using StacksForce.Stacks.ChainTransactions;
+using StacksForce.Utils;
 using System;
 using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Threading.Tasks;
+using static StacksForce.Stacks.WebApi.Transactions;
 
 namespace StacksForce.Stacks.WebApi
 {
@@ -14,17 +17,21 @@ namespace StacksForce.Stacks.WebApi
         private const string BLOCK = "block";
         private const string MICROBLOCK = "microblock";
         private const string MEMPOOL = "mempool";
+        private const string ADDRESS_TX_UPDATE = "address_tx_update";
+        private const string ADDRESS_BALANCE_UPDATE = "address_balance_update";
 
         private readonly Blockchain _chain;
 
         private WebSock? _webSock;
 
-        public event Action<string, TransactionStatus>? OnTxUpdated;
+        public event Action<TransactionInfo>? OnTxUpdated;
         public event Action? OnNewBlock;
         public event Action? OnNewMicroblock;
 
         private readonly ConcurrentQueue<PendingRequest> _unsentQueue = new ConcurrentQueue<PendingRequest>();
         private readonly ConcurrentDictionary<Request, PendingRequest> _pendingRequests = new ConcurrentDictionary<Request, PendingRequest>();
+
+        public bool IsConnected => _webSock != null && _webSock.IsConnected();
 
         public WebSocketAPI(Blockchain chain)
         {
@@ -65,19 +72,28 @@ namespace StacksForce.Stacks.WebApi
         public Task<Error?> SubsribeToMempoolEvent() => SendAndWaitSubscription(new { @event = MEMPOOL });
         public Task<Error?> UnsubsribeToMempoolEvent() => SendAndWaitUnsubscription(new { @event = MEMPOOL });
 
-        public Task<Error?> SubsribeToAddressTransactions(string address) => SendAndWaitSubscription(new { @event = "address_tx_update", address });
-        public Task<Error?> UnsubsribeToAddressTransactions(string address) => SendAndWaitUnsubscription(new { @event = "address_tx_update", address });
+        public Task<Error?> SubsribeToAddressTransactions(string address) => SendAndWaitSubscription(new { @event = ADDRESS_TX_UPDATE, address });
+        public Task<Error?> UnsubsribeToAddressTransactions(string address) => SendAndWaitUnsubscription(new { @event = ADDRESS_TX_UPDATE, address });
 
-        public Task<Error?> SubsribeToBalanceUpdate(string address) => SendAndWaitSubscription(new { @event = "address_balance_update", address });
-        public Task<Error?> UnsubsribeToBalanceUpdate(string address) => SendAndWaitSubscription(new { @event = "address_balance_update", address });
+        public Task<Error?> SubsribeToBalanceUpdate(string address) => SendAndWaitSubscription(new { @event = ADDRESS_BALANCE_UPDATE, address });
+        public Task<Error?> UnsubsribeToBalanceUpdate(string address) => SendAndWaitUnsubscription(new { @event = ADDRESS_BALANCE_UPDATE, address });
 
         protected override void HandleNotification(Response response)
         {
-            if (response.method == TX_UPDATE)
+            if (response.method == ADDRESS_TX_UPDATE ||
+                response.method == TX_UPDATE)
             {
-                var txid = response.@params.Value.GetProperty("tx_id").GetString().Substring(2);
-                TransactionStatus status = EnumUtils.FromString(response.@params.Value.GetProperty("tx_status").GetString(), TransactionStatus.Undefined);
-                OnTxUpdated?.Invoke(txid, status);
+                var transactionJsonElement = response.@params.Value;
+                if (response.method == ADDRESS_TX_UPDATE)
+                    transactionJsonElement = transactionJsonElement.GetProperty("tx");
+                var rawJson = transactionJsonElement.GetRawText();
+                var transactionData = JsonSerializer.Deserialize<TransactionData>(rawJson, HttpAPIUtils.SERIALIZER_OPTIONS);
+                var info = TransactionInfo.FromData(_chain, transactionData);
+
+                if (info != null)
+                { 
+                    OnTxUpdated?.Invoke(info);
+                }
             } else if (response.method == BLOCK)
             {
                 OnNewBlock?.Invoke();
@@ -165,13 +181,6 @@ namespace StacksForce.Stacks.WebApi
                 _webSock?.Destroy();
                 _webSock = null;
             }
-        }
-
-        private class TxUpdateEvent
-        {
-            public string tx_id;
-            public string tx_type;
-            public string tx_status;
         }
 
         private class PendingRequest

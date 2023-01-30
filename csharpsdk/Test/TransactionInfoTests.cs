@@ -1,5 +1,7 @@
 ﻿using StacksForce.Stacks;
 using StacksForce.Stacks.ChainTransactions;
+using StacksForce.Stacks.WebApi;
+using StacksForce.Utils;
 
 namespace StacksForceTest
 {
@@ -106,6 +108,24 @@ namespace StacksForceTest
             Assert.Equal(30368232ul, (last2[24] as FTEvent).Amount);
             Assert.Equal(TransactionEvent.TokenEventType.Mint, (last2[24] as FTEvent).Type);
 
+        }
+
+        [Fact]
+        public async void TestBlockTransationsStream()
+        {
+            List<IDataStream<TransactionInfo>> sources = new List<IDataStream<TransactionInfo>>();
+
+            for (int b = 95581; b <= 95584; b++)
+                sources.Add(new BlockTransactionsStream(Blockchains.Testnet, (uint)b));
+
+            var s = new MultipleSourcesDataStream<TransactionInfo>(sources);
+            var result = await s.ReadMoreAsync(20);
+
+            Assert.NotNull(result);
+            Assert.Equal(10, result.Count);
+            Assert.Equal("0x620e5d7a09ed8ba6bafc050f93cc8c83da8af48d3a86ddbabdb511f7cfaf0d64", result[0].TxId);
+            Assert.Equal("0x0100d6a1b16816927664ee262ef95fce32930e7c21b2a2f24a87244fb63a6f2d", result[4].TxId);
+            Assert.Equal("0x164701b3d2f6804342af974d1073ce7ec76eab2a573bd41fe40345273ef384c2", result[9].TxId);
         }
     }
 }

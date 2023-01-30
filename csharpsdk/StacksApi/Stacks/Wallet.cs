@@ -94,5 +94,7 @@ namespace StacksForce.Stacks
             var appKeychain = _appsKey.Derive(appIndex + StacksWallet.HARDENED_OFFSET);
             return appKeychain.PrivateKey.ToHex();
         }
+
+        public byte[] Sign(byte[] message) => SigningUtils.Secp256k1Sign(message, _privateKey.ToHexByteArray());
     }
 }

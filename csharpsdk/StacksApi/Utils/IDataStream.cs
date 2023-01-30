@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
+using System;
+using System.Linq;
 
 namespace StacksForce.Utils
 {
@@ -84,6 +85,65 @@ namespace StacksForce.Utils
         protected virtual Task? Prepare() => null;
 
         protected abstract Task<List<T>?> GetRange(long index, long count);
+    }
+
+    public class TransformDataStream<T, TSource> : IDataStream<T>
+    {
+        public delegate T TransformFunction(TSource source);
+
+        private readonly IDataStream<TSource> _source;
+        private readonly TransformFunction _transform;
+
+        public TransformDataStream(IDataStream<TSource> source, TransformFunction transform)
+        {
+            _source = source;
+            _transform = transform;
+        }
+
+        public async Task<List<T>?> ReadMoreAsync(int count)
+        {
+            var data = await _source.ReadMoreAsync(count).ConfigureAwait();
+            if (data == null)
+                return null;
+            return data.Select(x => _transform(x)).ToList();
+        }
+    }
+
+    public class MultipleSourcesDataStream<T> : IDataStream<T>
+    {
+        private readonly Queue<IDataStream<T>> _sources;
+        private IDataStream<T> _current;
+
+        private readonly List<T> _data = new List<T>();
+
+        public MultipleSourcesDataStream(IEnumerable<IDataStream<T>> sources)
+        {
+            _sources = new Queue<IDataStream<T>>(sources);
+            _current = _sources.Dequeue();
+        }
+
+        public async Task<List<T>?> ReadMoreAsync(int count)
+        {
+            _data.Clear();
+            if (_current == null)
+                return _data;
+
+            while (_data.Count < count)
+            {
+                var needToRead = count - _data.Count;
+                var result = await _current.ReadMoreAsync(needToRead).ConfigureAwait();
+                if (result == null)
+                    return null;
+
+                _data.AddRange(result);
+                if (result.Count == 0)
+                {
+                    if (!_sources.TryDequeue(out _current))
+                        break;
+                }
+            }
+            return _data;
+        }
     }
 
     public class BasicCachedDataStream<T> : IDataStreamProvider<T>

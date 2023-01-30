@@ -24,6 +24,7 @@ namespace StacksForce.Stacks.ChainTransactions
         public string MicroblockHash { get; private set; }
         public string Sender { get; private set; }
         public DateTime BurnBlockTime { get; private set; }
+        public uint BlockHeight { get; private set; }
 
         public IDataStreamProvider<TransactionEvent> Events => _events;
 
@@ -90,6 +91,7 @@ namespace StacksForce.Stacks.ChainTransactions
                 TransactionType.TokenTransfer => new TransferTransactionInfo(),
                 TransactionType.ContractCall => new ContractCallTransactionInfo(),
                 TransactionType.SmartContract => new ContractDeployTransactionInfo(),
+                TransactionType.Coinbase => new CoinbaseTransactionInfo(),
                 _ => null
             };
 
@@ -99,7 +101,7 @@ namespace StacksForce.Stacks.ChainTransactions
             if (!txId.StartsWith("0x"))
                 txId = "0x" + txId;
 
-            var result = await chain.GetTransactionsDetails(new string[] { txId }, 0, 96, true).ConfigureAwait();
+            var result = await chain.GetTransactionsDetails(new string[] { txId }, 0, 50, true).ConfigureAwait();
             if (result.IsError)
                 return new AsyncCallResult<TransactionData>(result.Error!);
 
@@ -116,6 +118,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
             if (transactionData.burn_block_time > 0)
                 BurnBlockTime = DateTimeOffset.FromUnixTimeSeconds(transactionData.burn_block_time).DateTime;
+            BlockHeight = transactionData.block_height;
             MicroblockSequence = transactionData.microblock_sequence;
             MicroblockHash = transactionData.microblock_hash;
             IsAnchored = !transactionData.is_unanchored && transactionData.tx_status == "success";
@@ -218,6 +221,11 @@ namespace StacksForce.Stacks.ChainTransactions
 
             base.RefreshFromData(result);
         }
+    }
+
+    public class CoinbaseTransactionInfo : TransactionInfo
+    {
+
     }
 
     public class TransferTransactionInfo : TransactionInfo
