@@ -1,14 +1,12 @@
 ﻿using StacksForce.Stacks.ChainTransactions;
 using StacksForce.Utils;
 using System;
-using System.Collections.Concurrent;
-using System.Text.Json;
 using System.Threading.Tasks;
 using static StacksForce.Stacks.WebApi.Transactions;
 
 namespace StacksForce.Stacks.WebApi
 {
-    public class WebSocketAPI : JsonRpcServiceBase
+    public class WebSocketAPI : JsonRpcService
     {
         private const string SUBSCRIBE = "subscribe";
         private const string UNSUBSCRIBE = "unsubscribe";
@@ -27,9 +25,6 @@ namespace StacksForce.Stacks.WebApi
         public event Action<TransactionInfo>? OnTxUpdated;
         public event Action? OnNewBlock;
         public event Action? OnNewMicroblock;
-
-        private readonly ConcurrentQueue<PendingRequest> _unsentQueue = new ConcurrentQueue<PendingRequest>();
-        private readonly ConcurrentDictionary<Request, PendingRequest> _pendingRequests = new ConcurrentDictionary<Request, PendingRequest>();
 
         public bool IsConnected => _webSock != null && _webSock.IsConnected();
 
@@ -87,7 +82,7 @@ namespace StacksForce.Stacks.WebApi
                 if (response.method == ADDRESS_TX_UPDATE)
                     transactionJsonElement = transactionJsonElement.GetProperty("tx");
                 var rawJson = transactionJsonElement.GetRawText();
-                var transactionData = JsonSerializer.Deserialize<TransactionData>(rawJson, HttpAPIUtils.SERIALIZER_OPTIONS);
+                var transactionData = JsonService.Deserialize<TransactionData>(rawJson);
                 var info = TransactionInfo.FromData(_chain, transactionData);
 
                 if (info != null)
@@ -103,54 +98,29 @@ namespace StacksForce.Stacks.WebApi
             }
         }
 
-        protected override void HandleSuccess(Request request, Response response)
-        {
-            if (_pendingRequests.TryRemove(request, out var p))
-            {
-                p.Complete.SetResult(null);
-            }
-        }
-
-        protected override void HandleError(Request request, Response response)
-        {
-            if (_pendingRequests.TryRemove(request, out var p))
-            {
-                p.Complete.SetResult(new Error(response.error.message, response.error.data));
-            }
-        }
-
-        private async Task<Error?> SendAndWait(string method, object data)
-        {
-            var pr = await SendRequest(method, data).ConfigureAwait(false);
-            var result = await pr.Complete.Task.ConfigureAwait(false);
-            Log.Trace($"WebSocketAPI SendAndWait {method}: {result}");
-            return result;
-        }
-
-        private Task<Error?> SendAndWaitSubscription(object data) => SendAndWait(SUBSCRIBE, data);
-        private Task<Error?> SendAndWaitUnsubscription(object data) => SendAndWait(UNSUBSCRIBE, data);
-
-        private async Task<PendingRequest> SendRequest(string method, object parameters)
-        {
-            var requestBody = CreateRequest(method, parameters, out var request);
-            var pr = new PendingRequest(request, requestBody);
-            _pendingRequests.TryAdd(request, pr);
-            var sent = await Send(requestBody).ConfigureAwait(false);
-            if (!sent)
-                _unsentQueue.Enqueue(pr);
-            return pr;
-        }
-
-        private Task<bool> Send(string message)
+        protected override Task<bool> Send(string message)
         {
             Task<bool>? task = null;
-            lock(this)
+            lock (this)
             {
                 if (_webSock != null)
                     task = _webSock.SendMessage(message);
             }
             return task ?? Task.FromResult(false);
         }
+
+        private async Task<Error?> SendAndWaitSubscription(object data)
+        {
+            var result = await SendAndWait(SUBSCRIBE, data).ConfigureAwait();
+            return result.IsSuccess ? null : result.Error;
+        }
+
+        private async Task<Error?> SendAndWaitUnsubscription(object data)
+        {
+            var result = await SendAndWait(UNSUBSCRIBE, data).ConfigureAwait();
+            return result.IsSuccess ? null : result.Error;
+        }
+
 
         private void WebSock_OnMessage(string message, WebSock webSocket)
         {
@@ -168,12 +138,6 @@ namespace StacksForce.Stacks.WebApi
             Disconnect();
         }
 
-        private async void SendUnsentQueue()
-        {
-            while (_unsentQueue.TryDequeue(out var pr))
-                await Send(pr.RequestBody).ConfigureAwait(false);
-        }
-
         private void Disconnect()
         {
             lock (this)
@@ -183,17 +147,5 @@ namespace StacksForce.Stacks.WebApi
             }
         }
 
-        private class PendingRequest
-        {
-            public Request Request { get; }
-            public string RequestBody { get; }
-            public PendingRequest(Request request, string body)
-            {
-                Request = request;
-                RequestBody = body;
-            }
-
-            public TaskCompletionSource<Error?> Complete { get; } = new TaskCompletionSource<Error?>();
-        }
     }
 }

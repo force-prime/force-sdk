@@ -42,7 +42,7 @@ public class InGameUI : MonoBehaviour
             if (_lastRequestNftUrl == _currentNftUrl)
             {
                 nftImage.sprite = sprite;
-                nftImage.gameObject.SetActive(true);
+                nftImage.gameObject.SetActive(sprite != null);
             }
         } else
         {

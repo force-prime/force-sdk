@@ -3,8 +3,8 @@ using ShopSample;
 
 // Fill with valid mnemonics
 // See shop.md for details
-string adminMnemonic = "almost solve purity lemon giggle wheel vast raccoon brown mistake tissue route hurdle dune sheriff give industry prison south subway fiber awkward desk vessel";
-string clientMnemonic = "relax feature mammal chimney mule naive use damp ritual student flight polar brave alpha inner fit toy step grit weather ahead connect awake south";
+string adminMnemonic = "";
+string clientMnemonic = "";
 
 if (string.IsNullOrEmpty(adminMnemonic) || string.IsNullOrEmpty(clientMnemonic))
 {
@@ -20,7 +20,7 @@ Console.WriteLine("Read more about transactions at:");
 Console.WriteLine("https://docs.stacks.co/docs/understand-stacks/transactions");
 Console.WriteLine("https://support.gamma.io/hc/en-us/articles/6011123313683-Why-does-it-take-a-few-minutes-for-my-transaction-to-be-confirmed-");
 
-// await ConfigureServer();
+await ConfigureServer();
 
 Console.WriteLine("Trying to buy an NFT for game tokens...");
 await client.BuyNFT(2, 100);

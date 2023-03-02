@@ -1,15 +1,14 @@
-﻿using Cryptography.ECDSA;
-using NBitcoin;
+﻿using NBitcoin;
+using NBitcoin.Crypto;
+using NBitcoin.Secp256k1;
 using Org.BouncyCastle.Crypto.Digests;
 using StacksForce.Dependencies;
-using StacksForce.Stacks.WebApi;
 using StacksForce.Utils;
 using System;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -33,8 +32,7 @@ namespace StacksForce.Stacks
         {
             private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpHelper.NRetryStrategy(0, 3000);
 
-            private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = HttpAPIUtils.SERIALIZER_OPTIONS;
-
+            private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = JsonService.SERIALIZER_OPTIONS;
             public Task<AsyncCallResult<string>> Get(string uri)
             {
                 return HttpHelper.SendRequest(uri, null, DEFAULT_RETRY_STRATEGY);
@@ -63,31 +61,53 @@ namespace StacksForce.Stacks
 
         private class DefaultCryptography : ICryptography
         {
-            public byte[] RipeMD160(byte[] data)
-            {
-                var digest = new RipeMD160Digest();
-                digest.BlockUpdate(data, 0, data.Length);
-                var outArray = new byte[20];
-                digest.DoFinal(outArray, 0);
-                return outArray;
-            }
+            public byte[] RipeMD160(byte[] data) => Hashes.RIPEMD160(data);
 
             public byte[] Secp256k1GetPublicKey(byte[] privateKey, bool compressed)
             {
-                return Secp256K1Manager.GetPublicKey(privateKey, compressed);
+                if (!ECPrivKey.TryCreate(privateKey, null, out var pKey))
+                    throw new ArgumentException("private key");
+
+                var pubKey = pKey.CreatePubKey();
+
+                var bytes = new byte[compressed ? 33 : 65];
+                pubKey.WriteToSpan(compressed, bytes, out _);
+                return bytes;
             }
 
             public byte[] Secp256k1Sign(byte[] data, byte[] privateKey, out int recoveryId)
             {
-                var sig = Secp256K1Manager.SignCompact(data, privateKey, out recoveryId);
-                return sig;
+                if (!ECPrivKey.TryCreate(privateKey, null, out var pKey))
+                    throw new ArgumentException("private key");
+
+                if (!pKey.TrySignRecoverable(data, out var sig))
+                    throw new ArgumentException("data");
+
+                var bytes = new byte[64];
+                sig.WriteToSpanCompact(bytes, out recoveryId);
+                return bytes;
             }
 
-            public byte[] Sha256(byte[] data)
+            public bool Secp256k1Verify(byte[] message, byte[] signature, byte[] pubkey)
             {
-                using (SHA256 sha = SHA256.Create())
-                    return sha.ComputeHash(data);
+                if (!SecpECDSASignature.TryCreateFromCompact(signature, out var s))
+                    return false;
+
+                ECPubKey? ecPubKey = null;
+                if (pubkey.Length == 64)
+                {
+                    GE point = new GE(
+                        new FE(new ReadOnlySpan<byte>(pubkey, 0, 32)),
+                        new FE(new ReadOnlySpan<byte>(pubkey, 32, 32)));
+                    ecPubKey = new ECPubKey(point, null);
+                } else { 
+                if (!ECPubKey.TryCreate(pubkey, null, out _, out ecPubKey))
+                    return false;
+                }
+                return ecPubKey.SigVerify(s, message);
             }
+
+            public byte[] Sha256(byte[] data) => Hashes.SHA256(data);
 
             public byte[] Sha512_256(byte[] data)
             {

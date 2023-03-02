@@ -1,5 +1,6 @@
 ﻿using ChainAbstractions;
 using ChainAbstractions.Stacks;
+using StacksForce.Stacks;
 using StacksForce.Stacks.ChainTransactions;
 using StacksForce.Stacks.WebApi;
 
@@ -9,25 +10,21 @@ var arguments = Environment.GetCommandLineArgs();
 if (arguments.Length < 3)
 {
     PrintHelp();
-    return;
+    return 1;
 }
 
 switch (arguments[1])
 {
-    case "generate": GenerateWallet();
-        return;
+    case "generate": return GenerateWallet();
 
-    case "wallet": await ShowWalletInfo();
-        return;
+    case "wallet": return await ShowWalletInfo();
 
-    case "teststx": await GetTestStx();
-        return;
+    case "teststx": return await GetTestStx();
 
-    case "deploy": await UploadClarityCode();
-        return;
+    case "deploy": return await UploadClarityCode();
 
     default: PrintHelp();
-        return;
+        return 1;
 }
 
 void PrintHelp()
@@ -39,7 +36,7 @@ void PrintHelp()
     Console.WriteLine($" clitools deploy <key file> <code file> - uploads clarity code from <code file> using account from <key file>");
 }
 
-async Task GetTestStx()
+async Task<int> GetTestStx()
 {
     var wallet = ReadWallet();
     var stxChain = chain.AsStacksBlockchain();
@@ -47,15 +44,16 @@ async Task GetTestStx()
     if (result.IsError)
     {
         Console.WriteLine("Error requesting test tokens: " + result.Error);
-        return;
+        return 1;
     }
 
     var info = await TransactionInfo.ForTxId(chain.AsStacksBlockchain(), result.Data);
     stxChain.GetTransactionMonitor().WatchTransaction(info);
     await WaitForTransaction(info);
+    return info.Data.Status == StacksForce.Stacks.TransactionStatus.Success ? 0 : 1;
 }
 
-void GenerateWallet()
+int GenerateWallet()
 {
     var keyFile = Environment.GetCommandLineArgs()[2];
 
@@ -65,19 +63,20 @@ void GenerateWallet()
         if (File.Exists(keyFile))
         {
             Console.WriteLine($"{keyFile} already exists!");
-            return;
+            return 1;
         }
 
         File.WriteAllText(keyFile, wallet.GetMnemonic());
     } catch (Exception) {
         Console.WriteLine("Error writing mnemonic!");
-        return;
+        return 1;
     }
 
     Console.WriteLine("Mnemonic generated successfully!");
+    return 0;
 }
 
-IBasicWallet ReadWallet()
+IWallet ReadWallet()
 {
     var keyFile = Environment.GetCommandLineArgs()[2];
 
@@ -101,16 +100,25 @@ IBasicWallet ReadWallet()
     return wallet;
 }
 
-async Task ShowWalletInfo()
+async Task<int> ShowWalletInfo()
 {
     var wallet = ReadWallet();
     var address = wallet.GetAddress();
+    var stacksWallet = new StacksWallet(wallet.GetMnemonic());
 
+    Console.WriteLine("Private Key: " + stacksWallet.GetAccount(0).PrivateKey);
+    Console.WriteLine("Public Key: " + stacksWallet.GetAccount(0).PublicKey);
     Console.WriteLine("Address: " + address);
 
     var tokens = await wallet.GetAllTokens();
+    if (tokens.IsError)
+    {
+        Console.WriteLine("Error occured: " + tokens.Error);
+        return 1;
+    }
+
     Console.WriteLine("Balances: ");
-    foreach (var t in tokens)
+    foreach (var t in tokens.Data)
         Console.WriteLine(t.BalanceFormatted());
 
     Console.WriteLine("Active transactions: ");
@@ -118,7 +126,7 @@ async Task ShowWalletInfo()
     if (transactions.IsError)
     {
         Console.WriteLine("Cannot read active transactions: " + transactions.Error);
-        return;
+        return 1;
     }
     foreach (var t in transactions.Data)
     {
@@ -128,15 +136,16 @@ async Task ShowWalletInfo()
         Console.WriteLine(t);
         Console.WriteLine(t.StacksExplorerLink);
     }
+    return 0;
 }
 
-async Task UploadClarityCode()
+async Task<int> UploadClarityCode()
 {
     var arguments = Environment.GetCommandLineArgs();
     if (arguments.Length < 4)
     {
         PrintHelp();
-        return;
+        return 1;
     }
 
     var wallet = ReadWallet();
@@ -151,7 +160,7 @@ async Task UploadClarityCode()
     catch (Exception)
     {
         Console.WriteLine($"Cannot read code from: {fileName}");
-        return;
+        return 1;
     }
 
     code = code.ReplaceLineEndings("\n");
@@ -163,15 +172,16 @@ async Task UploadClarityCode()
     if (deployTransaction.IsError)
     {
         Console.WriteLine($"Transaction creation failed: {deployTransaction.Error}");
-        return;
+        return 1;
     }
     var info = await transactionManager.Run(deployTransaction.Data);
     if (info.IsError)
     {
         Console.WriteLine($"Transaction broadcast failed: {info.Error}");
-        return;
+        return 1;
     }
     await WaitForTransaction(info.Data);
+    return info.Data.Status == StacksForce.Stacks.TransactionStatus.Success ? 0 : 1;
 }
 
 async Task WaitForTransaction(TransactionInfo transaction)

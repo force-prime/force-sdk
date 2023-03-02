@@ -21,9 +21,15 @@ static public class NftMeta
 
     private static async Task<Sprite> GetImage(string uri, object data)
     {
+        uri = HttpHelper.GetHttpUrlFrom(uri);
         var request = UnityWebRequestTexture.GetTexture(uri);
         await request.SendWebRequest();
-        var texture = DownloadHandlerTexture.GetContent(request);
-        return Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100.0f);
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            var texture = DownloadHandlerTexture.GetContent(request);
+            if (texture != null)
+                return Sprite.Create(texture, new Rect(0.0f, 0.0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100.0f);
+        }
+        return null;
     }
 }

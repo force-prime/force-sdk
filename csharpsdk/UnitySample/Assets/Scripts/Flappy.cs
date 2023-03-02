@@ -40,7 +40,7 @@ public class Flappy : MonoBehaviour
         gameObject.transform.localScale = new Vector3(size, size, size);
     }
 
-    public void Reset()
+    public void ResetValues()
     {
         _rigidBody.simulated = false;
         _rigidBody.transform.localPosition = Vector3.zero;

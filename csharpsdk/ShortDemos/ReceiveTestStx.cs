@@ -30,13 +30,13 @@ namespace ShortDemos
             // let's wait a bit
             await Task.Delay(5000);
 
-            var info = await TransactionInfo.ForTxId(Blockchains.Testnet, result.Data);
-            if (info == null)
+            var infoResult = await TransactionInfo.ForTxId(Blockchains.Testnet, result.Data);
+            if (infoResult.IsError)
             {
                 Console.WriteLine("Can't get transaction info");
                 return;
             }
-
+            var info = infoResult.Data;
             Console.WriteLine("Transaction: " + info.ToString());
             Console.WriteLine($"Check transaction state in stacks explorer: {info.StacksExplorerLink}");
 
@@ -68,13 +68,13 @@ namespace ShortDemos
             Console.WriteLine("Fetching current balance");
 
             var currentStxBalance = await wallet.GetToken(null);
-            if (currentStxBalance == null)
+            if (currentStxBalance.IsError)
             {
-                Console.WriteLine("Something went wrong");
+                Console.WriteLine("Something went wrong: " + currentStxBalance.Error);
                 return;
             }
 
-            Console.WriteLine("Current balance: " + currentStxBalance.BalanceFormatted());
+            Console.WriteLine("Current balance: " + currentStxBalance.Data.BalanceFormatted());
         }
     }
 }

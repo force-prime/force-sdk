@@ -36,6 +36,7 @@ namespace StacksForce.Dependencies
         byte[] Sha512_256(byte[] data);
         byte[] RipeMD160(byte[] data);
 
+        bool Secp256k1Verify(byte[] message, byte[] signature, byte[] publicKey);
         byte[] Secp256k1Sign(byte[] data, byte[] privateKey, out int recoveryId);
         byte[] Secp256k1GetPublicKey(byte[] privateKey, bool compressed);
     }

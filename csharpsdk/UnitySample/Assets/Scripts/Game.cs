@@ -42,32 +42,35 @@ public class Game : MonoBehaviour
 
     public void CompleteSelection()
     {
-        if (_nft != null)
-        {
-            _state = State.Selected;
-        }
+        _state = State.Selected;
     }
 
     public void AssignNft(INFT nft)
     {
         _nft = nft;
 
-        var id = nft.GetNFTId();
-        var assetId = nft.GetNFTTypeId();
+        if (_nft != null)
+        {
+            var id = nft.GetNFTId();
+            var assetId = nft.GetNFTTypeId();
 
-        uint hash = SigningUtils.GetStringHashCode(id + assetId);
+            uint hash = SigningUtils.GetStringHashCode(id + assetId);
 
-        uint sizeSource = hash & 0xff;
-        uint speedSource = (hash >> 8) & 0xff;
-        uint strSource = (hash >> 16) & 0xff;
-        uint gravitySource = (hash >> 24) & 0xff;
-        uint luckSource = (hash >> 32) & 0xff;
+            uint sizeSource = hash & 0xff;
+            uint speedSource = (hash >> 8) & 0xff;
+            uint strSource = (hash >> 16) & 0xff;
+            uint gravitySource = (hash >> 24) & 0xff;
+            uint luckSource = (hash >> 32) & 0xff;
 
-        player.strength = ToRange(strSource, 30f, 60f);
-        player.size = ToRange(sizeSource, 0.7f, 1.3f);
-        player.speed = ToRange(speedSource, 1f, 1.5f);
-        player.gravity = ToRange(gravitySource, 1f, 1.5f);
-        player.luck = ToRange(luckSource, 0f, 0.3f);
+            player.strength = ToRange(strSource, 30f, 60f);
+            player.size = ToRange(sizeSource, 0.7f, 1.3f);
+            player.speed = ToRange(speedSource, 1f, 1.5f);
+            player.gravity = ToRange(gravitySource, 1f, 1.5f);
+            player.luck = ToRange(luckSource, 0f, 0.3f);
+        } else
+        {
+            FillDefaultStats();
+        }
 
         player.UpdateStats();
     }
@@ -114,16 +117,21 @@ public class Game : MonoBehaviour
                 StartGame();
         } else if (_state == State.Playing)
         {
-            MoveMap();
-            GenerateObstacles();
+            HandleLogicTick(keyPressed);
+        }
+    }
 
-            if (!IsInPlayableArea())
-                CompleteGame();
-            else 
-            {
-                if (keyPressed)
-                    player.Body.AddForce(new Vector2(0, player.strength), ForceMode2D.Force);
-            }
+
+    public void HandleLogicTick(bool jump) {
+        MoveMap();
+        GenerateObstacles();
+
+        if (!IsInPlayableArea())
+            CompleteGame();
+        else
+        {
+            if (jump)
+                player.Body.AddForce(new Vector2(0, player.strength), ForceMode2D.Force);
         }
     }
 
@@ -144,10 +152,10 @@ public class Game : MonoBehaviour
     private void PrepareForNewGame()
     {
         // clear all remembered controls to avoid triggering interface buttons with 'space'
-        EventSystem.current.SetSelectedGameObject(null); 
+        EventSystem.current?.SetSelectedGameObject(null); 
 
         player.transform.localPosition = PLAYER_START_POS;
-        player.Reset();
+        player.ResetValues();
 
         obstacles.transform.localPosition = Vector3.zero;
 
@@ -161,7 +169,7 @@ public class Game : MonoBehaviour
         obstacles.transform.localPosition = new Vector3(p.x - SPEED_COEFF * player.speed, 0, 0);
     }
 
-    private void StartGame()
+    public void StartGame()
     {
         _state = State.Playing;
         player.Body.simulated = true;
@@ -169,16 +177,34 @@ public class Game : MonoBehaviour
 
     private void CompleteGame()
     {
-        HighScores.Add(_nft.Name, (int) Math.Floor(Distance));
+        var score = (int)Math.Floor(Distance);
+        HighScores.Add(_nft != null ? _nft.Name : "No nft", score);
+
+        if (!Application.isEditor)
+        {
+#if UNITY_WEBGL
+            PortalJS.SendComplete(score, GameLoader.Token);
+#endif
+        }
 
         _state = State.Completed;
         player.Complete();
 
-        Instantiate(bumpEffectPrefab, player.Body.transform.position, Quaternion.identity);
+        if (bumpEffectPrefab != null)
+            Instantiate(bumpEffectPrefab, player.Body.transform.position, Quaternion.identity);
     }
     private float ToRange(uint source, float min, float max)
     {
         float fSource = (source % 20) / 19f;
         return Mathf.Lerp(min, max, fSource);
+    }
+
+    private void FillDefaultStats()
+    {
+        player.strength = 30f;
+        player.size = 1.3f;
+        player.speed = 1.5f;
+        player.gravity = 1f;
+        player.luck = 0f;
     }
 }

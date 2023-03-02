@@ -7,11 +7,18 @@ using StacksForce.Utils;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Numerics;
+using System.Linq;
 
 namespace ChainAbstractions.Stacks
 {
     static public partial class StacksAbstractions
     {
+        static public IFungibleToken From(this IFungibleTokenData data, double value)
+        {
+            var ftData = (FungibleTokenData)data;
+            return new FungibleToken((ulong)(value * Math.Pow(10, ftData.Decimals)), ftData);
+        }
 
         private class FungibleTokenData : IFungibleTokenData
         {
@@ -19,7 +26,6 @@ namespace ChainAbstractions.Stacks
             public string Description { get; }
             public string ImageUrl { get; }
             public uint Decimals { get; }
-
 
             public string Address { get; }
             public string Contract { get; }
@@ -51,8 +57,6 @@ namespace ChainAbstractions.Stacks
                 ImageUrl = imageUrl;
                 Decimals = decimals;
             }
-
-            public string FormatCount(ulong count) => FormatBalance(count, Decimals, Code);
         }
 
         private class StxTokenData : FungibleTokenData
@@ -67,7 +71,7 @@ namespace ChainAbstractions.Stacks
 
         private class FungibleToken : IFungibleToken
         {
-            public ulong Balance { get; }
+            public BigInteger Balance { get; }
             public IFungibleTokenData Data => _data;
 
             private readonly FungibleTokenData _data;
@@ -78,7 +82,7 @@ namespace ChainAbstractions.Stacks
                 _data = data;
             }
 
-            public string FormatCount(ulong count) => FormatBalance(count, _data.Decimals, _data.Code);
+            public override string ToString() => Data.FormatCount(Balance);
         }
 
         private class BlockchainImplBasic : IBlockchain
@@ -93,12 +97,12 @@ namespace ChainAbstractions.Stacks
                 FTCache = new FTMetaDataCache(blockchain);
             }
 
-            public IBasicWallet CreateNewWallet()
+            public IWallet CreateNewWallet()
             {
                 return BasicWalletImpl.CreateNew(_blockchain);
             }
 
-            public IBasicWallet? GetWalletForMnemonic(string mnemonic)
+            public IWallet? GetWalletForMnemonic(string mnemonic)
             {
                 return BasicWalletImpl.FromMnemonic(_blockchain, mnemonic);
             }
@@ -123,6 +127,26 @@ namespace ChainAbstractions.Stacks
 
                 return new BasicWalletInfo(_blockchain, address);
             }
+
+            public async Task<AsyncCallResult<IVariable>> CallReadOnly(string from, string address, string method, List<IVariable> parameters)
+            {
+                var addressAndContract = address.Split(".");
+                if (parameters == null)
+                    parameters = new List<IVariable>(0);
+
+                var result = await _blockchain.CallReadOnly(addressAndContract[0], addressAndContract[1], 
+                    method, from, parameters.Select(FromIVariable).ToArray()).ConfigureAwait();
+
+                if (result.IsError)
+                    return result.Error!;
+
+                return new AsyncCallResult<IVariable>(ToIVariable(result.Data));
+            }
+
+            public IBasicWallet? GetWalletInfoForPrivateKey(string privateKey)
+            {
+                return new BasicWalletImpl(_blockchain, new StacksAccountBase(privateKey));
+            }
         }
 
         private class TestNetImpl : BlockchainImplBasic
@@ -135,10 +159,16 @@ namespace ChainAbstractions.Stacks
             public MainNetImpl() : base(Blockchains.Mainnet) { }
         }
 
-        private class BasicWalletImpl : BasicWalletInfo, IBasicWallet
+        private class BasicWalletImpl : BasicWalletInfo, IWallet
         {
-            internal readonly StacksWallet _wallet;
+            private readonly StacksAccountBase _account;
+            private readonly string _mnemonic;
+
             internal readonly TransactionsManager _manager;
+
+            public string PublicKey => throw new NotImplementedException();
+
+            public string PrivateKey => throw new NotImplementedException();
 
             static public BasicWalletImpl? FromMnemonic(Blockchain chain, string mnemonic)
             {
@@ -147,47 +177,96 @@ namespace ChainAbstractions.Stacks
                 try
                 {
                     var wallet = new StacksWallet(mnemonic);
-                    return new BasicWalletImpl(chain, wallet);
+                    return new BasicWalletImpl(chain, wallet.GetAccount(0), mnemonic);
                 } catch (Exception e)
                 {
                     return null;
                 }                
             }
 
-            static public IBasicWallet CreateNew(Blockchain chain)
+            static public IWallet CreateNew(Blockchain chain)
             {
                 return FromMnemonic(chain, StacksWallet.GenerateMnemonicPhrase())!;
             }
 
-            public BasicWalletImpl(Blockchain chain, StacksWallet wallet) : base(chain, wallet.GetAccount(0).GetAddress(chain.GetAddressVersion()))
+            public BasicWalletImpl(Blockchain chain, StacksAccountBase account, string mnemonic = "") : base(chain, account.GetAddress(chain.GetAddressVersion()))
             {
-                _wallet = wallet;
-                _manager = new TransactionsManager(chain, wallet.GetAccount(0));
+                _account = account;
+                _manager = new TransactionsManager(chain, account);
+                _mnemonic = mnemonic;
             }
 
-            public string GetMnemonic() => _wallet.Mnemonic;
+            public string GetMnemonic() => _mnemonic;
 
             public async Task<ITransaction> GetTransferTransaction(IFungibleToken token, string recepient, string? memo = null)
             {
                 if (Address.FromC32(recepient) == null)
                 {
-                    return new TransactionWrapper(null, new Error("Incorrect recepient"));
+                    return new TransactionWrapper(null, new Error("IncorrectRecepient"));
                 }
                 if (token.Data.Code == Stx.Code)
                 {
-                    var result = await _manager.GetStxTransfer(recepient, token.Balance, memo).ConfigureAwait();
+                    var result = await _manager.GetStxTransfer(recepient, (ulong) token.Balance, memo).ConfigureAwait();
                     return new TransactionWrapper(_manager, result);
                 }
                 else
                 {
                     var ftData = token.Data as FungibleTokenData;
-                    return await SIP10.Transfer(ftData.Address, ftData.Contract, ftData.Id, this, token.Balance, GetAddress(), recepient, memo).ConfigureAwait();
+                    return await SIP10.Transfer(ftData.Address, ftData.Contract, ftData.Id, this, (ulong) token.Balance, GetAddress(), recepient, memo).ConfigureAwait();
                 }
             }
+
+            public async Task<ITransaction> GetContractCallTransaction(string address, string method, List<IVariable>? parameters)
+            {
+                var addressAndContract = address.Split(".");
+                var contractCall = await _manager.GetContractCall(addressAndContract[0], addressAndContract[1], method, parameters?.Select(FromIVariable).ToArray()).ConfigureAwait();
+                return new TransactionWrapper(_manager, contractCall);
+            }
+        }
+
+        static private IVariable? ToIVariable(Clarity.Value v)
+        {
+            while (v is Clarity.WrappedValue wv)
+                v = wv.Value;
+
+            if (v is Clarity.Integer128 i128)
+                return new Variable<BigInteger>(i128, IVariable.VariableType.SignedInteger);
+            else if (v is Clarity.UInteger128 ui128)
+                return new Variable<BigInteger>(ui128, IVariable.VariableType.UnsingedInterger);
+            else if (v is Clarity.Principal principal)
+                return new Variable<string>(principal.ToString(), IVariable.VariableType.Address);
+            else if (v is Clarity.StringType str)
+            {
+                if (v.Type == Clarity.Types.StringASCII)
+                    return new Variable<string>(str, IVariable.VariableType.AsciiString);
+                else
+                    return new Variable<string>(str, IVariable.VariableType.UTF8String);
+            } else if (v is Clarity.Boolean b)
+            {
+                return new Variable<bool>(b.Value, IVariable.VariableType.Boolean);
+            }
+            return null;
+        }
+
+        static private Clarity.Value FromIVariable(IVariable v)
+        {
+            switch (v.Type)
+            {
+                case IVariable.VariableType.UnsingedInterger: return new Clarity.UInteger128(v.GetValue<BigInteger>());
+                case IVariable.VariableType.SignedInteger: return new Clarity.Integer128(v.GetValue<BigInteger>());
+                case IVariable.VariableType.ByteArray: return new Clarity.ByteBuffer(v.GetValue<byte[]>());
+                case IVariable.VariableType.Address: return Clarity.Principal.FromString(v.GetValue<string>());
+                case IVariable.VariableType.Boolean: return new Clarity.Boolean(v.GetValue<bool>());
+                case IVariable.VariableType.AsciiString: return new Clarity.StringType(v.GetValue<string>(), Clarity.Types.StringASCII);
+                case IVariable.VariableType.UTF8String: return new Clarity.StringType(v.GetValue<string>(), Clarity.Types.StringUTF8);
+            }
+            throw new NotImplementedException(v.Type + "is not implemented");
         }
 
         public sealed class TransactionWrapper : ITransaction
         {
+            public string? Id => _transaction?.TxId();
+
             public TransactionState State { get { UpdateState(); return _state; } }
 
             public Error? Error { get { UpdateState(); return _error; } }
@@ -240,7 +319,7 @@ namespace ChainAbstractions.Stacks
                 else
                 {
                     _state = TransactionState.Failed;
-                    _error = new Error(_info.Status.ToString());
+                    _error = new Error("TransactionFailed", _info.Status.ToString());
                 }
             }
 
@@ -253,16 +332,16 @@ namespace ChainAbstractions.Stacks
             {
                 if (State == TransactionState.PreApproved || State == TransactionState.Approved)
                 {
-                    return new Error("Incorrect transaction state");
+                    return new Error("IncorrectTransactionState");
                 }
 
                 if (_transaction == null)
                 {
-                    return new Error("Not found");
+                    return new Error("TranasctionNotFound");
                 }
 
                 if (newCost != null)
-                    _transaction.UpdateFeeAndNonce(newCost.Balance, _transaction.Nonce);
+                    _transaction.UpdateFeeAndNonce((ulong) newCost.Balance, _transaction.Nonce);
 
                 var result = await _manager.Run(_transaction).ConfigureAwait();
 
@@ -286,7 +365,7 @@ namespace ChainAbstractions.Stacks
                 _address = address;
             }
 
-            public async Task<IFungibleToken?> GetToken(string tokenId)
+            public async Task<AsyncCallResult<IFungibleToken>> GetToken(string tokenId)
             {
                 if (string.IsNullOrEmpty(tokenId))
                     tokenId = Stx.Code;
@@ -304,7 +383,7 @@ namespace ChainAbstractions.Stacks
                     }
                 }
 
-                return null;
+                return result.Error!;
             }
 
             public IDataStream<INFT> GetNFTs(string? nftType = null, bool readMetaData = true)
@@ -312,7 +391,7 @@ namespace ChainAbstractions.Stacks
                 return new NFTStream(_chain, _address, nftType, readMetaData);
             }
 
-            public async Task<List<IFungibleToken>> GetAllTokens()
+            public async Task<AsyncCallResult<List<IFungibleToken>>> GetAllTokens()
             {
                 var fts = new List<IFungibleToken>();
                 var result = await _chain.GetBalances(_address).ConfigureAwait();
@@ -327,8 +406,9 @@ namespace ChainAbstractions.Stacks
                             fts.Add(new FungibleToken(ft.Value.balance, tokenData));
                         }
                     }
+                    return new List<IFungibleToken>(fts);
                 }
-                return fts;
+                return result.Error!;
             }
 
             public string GetAddress() => _address;

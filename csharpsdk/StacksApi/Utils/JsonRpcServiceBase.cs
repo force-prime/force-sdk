@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace StacksForce.Utils
 {
     public abstract class JsonRpcServiceBase
     {
-        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = new JsonSerializerOptions
-        {
-            IncludeFields = true,
-            NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
-        };
-
         private long _requestId = 0;
 
         private readonly ConcurrentDictionary<long, Request> _pendingRequests = new ConcurrentDictionary<long, Request>();
@@ -23,7 +18,7 @@ namespace StacksForce.Utils
         {
             var id = Interlocked.Increment(ref _requestId);
             request = new Request(id, method, parameters);
-            var serializedRequest = JsonSerializer.Serialize(request, SERIALIZER_OPTIONS);
+            var serializedRequest = JsonService.Serialize(request);
             _pendingRequests.TryAdd(id, request);
             return serializedRequest;
         }
@@ -33,7 +28,7 @@ namespace StacksForce.Utils
             Response? response = null;
             try
             {
-                response = JsonSerializer.Deserialize<Response>(message, SERIALIZER_OPTIONS)!;
+                response = JsonService.Deserialize<Response>(message)!;
             } catch (Exception e)
             {
                 HandleParseException(message, e);
@@ -120,6 +115,78 @@ namespace StacksForce.Utils
                 this.method = method;
                 this.@params = parameters;
             }
+        }
+    }
+
+    public abstract class JsonRpcService : JsonRpcServiceBase
+    {
+        private readonly ConcurrentQueue<PendingRequest> _unsentQueue = new ConcurrentQueue<PendingRequest>();
+        private readonly ConcurrentDictionary<Request, PendingRequest> _pendingRequests = new ConcurrentDictionary<Request, PendingRequest>();
+
+        protected override void HandleSuccess(Request request, Response response)
+        {
+            if (_pendingRequests.TryRemove(request, out var p))
+            {
+                p.SetComplete(response, null);
+            }
+        }
+
+        protected override void HandleError(Request request, Response response)
+        {
+            if (_pendingRequests.TryRemove(request, out var p))
+            {
+                p.SetComplete(response, new Error(response.error.message, response.error.data));
+            }
+        }
+
+        protected abstract Task<bool> Send(string message);
+
+        private async Task<PendingRequest> SendRequest(string method, object parameters)
+        {
+            var requestBody = CreateRequest(method, parameters, out var request);
+            var pr = new PendingRequest(request, requestBody);
+            _pendingRequests.TryAdd(request, pr);
+            var sent = await Send(requestBody).ConfigureAwait(false);
+            if (!sent)
+                _unsentQueue.Enqueue(pr);
+            return pr;
+        }
+
+        protected async Task<AsyncCallResult<Response?>> SendAndWait(string method, object parameters)
+        {
+            var pendingRequest = await SendRequest(method, parameters).ConfigureAwait(false);
+            var error = await pendingRequest.Complete.Task.ConfigureAwait(false);
+            Log.Trace($"JsonRpcService SendAndWait {method}: {error}");
+            if (error != null)
+                return new AsyncCallResult<Response?>(error);
+            else
+                return new AsyncCallResult<Response?>(pendingRequest.Response);
+        }
+
+        protected async Task SendUnsentQueue()
+        {
+            while (_unsentQueue.TryDequeue(out var pr))
+                await Send(pr.RequestBody).ConfigureAwait(false);
+        }
+
+        private class PendingRequest
+        {
+            public Request Request { get; }
+            public string RequestBody { get; }
+            public PendingRequest(Request request, string body)
+            {
+                Request = request;
+                RequestBody = body;
+            }
+
+            public void SetComplete(Response? response, Error? error)
+            {
+                Response = response;
+                Complete.SetResult(error);
+            }
+
+            public Response? Response { get; set; }
+            public TaskCompletionSource<Error?> Complete { get; } = new TaskCompletionSource<Error?>();
         }
     }
 }

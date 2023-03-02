@@ -19,12 +19,12 @@ namespace StacksForce.Stacks.WebApi
 
             var result = await HttpAPIUtils.PostJson<CallReadOnlyResponse>(methodName, null, request);
             if (result.IsSuccess && !result.Data!.okay)
-                return new AsyncCallResult<Clarity.Value>(new Error("error", result.Data.cause));
+                return new Error("error", result.Data.cause);
 
             if (result.IsSuccess)
-                return new AsyncCallResult<Clarity.Value>(Clarity.Value.FromHex(result.Data!.result));
+                return Clarity.Value.FromHex(result.Data!.result);
 
-            return new AsyncCallResult<Clarity.Value>(result.Error!);
+            return result.Error!;
         }
 
         private class CallReadOnlyRequest

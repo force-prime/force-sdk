@@ -64,9 +64,9 @@ namespace ChainAbstractions.Stacks.ContractWrappers
             var result = await WebApiHelpers.ReadonlyGetUlong(chain.AsStacksBlockchain(), _address, _contract, "get-decimals").ConfigureAwait();
 
             if (result.IsError)
-                return new AsyncCallResult<uint>(result.Error!);
+                return result.Error!;
 
-            return new AsyncCallResult<uint>((uint) result.Data!.Value);
+            return (uint) result.Data!.Value;
         }
 
         public Task<AsyncCallResult<string?>> GetTokenUri() => GetString("get-token-uri");

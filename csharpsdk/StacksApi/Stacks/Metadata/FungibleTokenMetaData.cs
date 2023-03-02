@@ -2,15 +2,12 @@
 using StacksForce.Utils;
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace StacksForce.Stacks.Metadata
 {
     public class FungibleTokenMetaData
     {
-        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = HttpAPIUtils.SERIALIZER_OPTIONS;
-
         private static readonly FungibleTokenMetaData Empty = new FungibleTokenMetaData();
 
         public string? Currency { get; private set; }        
@@ -24,7 +21,7 @@ namespace StacksForce.Stacks.Metadata
         {
             try
             {
-                var data = JsonSerializer.Deserialize<JsonFormat>(json, SERIALIZER_OPTIONS)!;
+                var data = JsonService.Deserialize<JsonFormat>(json)!;
                 return new FungibleTokenMetaData { Name = data.name, Description = data.properties?.description, Image = data.image };
 
             }
@@ -54,7 +51,7 @@ namespace StacksForce.Stacks.Metadata
                     {
                         try
                         {
-                            var file = JsonSerializer.Deserialize<MetaDataFile>(tokenDataFromFile.Data, SERIALIZER_OPTIONS);
+                            var file = JsonService.Deserialize<MetaDataFile>(tokenDataFromFile.Data);
                             if (file != null)
                             {
                                 description = file.description;

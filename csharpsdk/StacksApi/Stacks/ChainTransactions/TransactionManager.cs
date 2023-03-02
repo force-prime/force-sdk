@@ -2,19 +2,26 @@
 using StacksForce.Utils;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using static StacksForce.Stacks.WebApi.HttpAPIUtils;
 
 namespace StacksForce.Stacks.ChainTransactions
 {
     public class TransactionsManager
     {
+        static public bool MonitorTransactionState = true;
+
         public Blockchain Chain { get; }
-        public StacksAccount Sender { get; }
+        public StacksAccountBase Sender { get; }
 
         private readonly Dictionary<string, Transaction> _id2Transaction = new Dictionary<string, Transaction>();
         private readonly Dictionary<string, TransactionInfo> _id2Info = new Dictionary<string, TransactionInfo>();
+        
+        private readonly SemaphoreSlim _isFree = new SemaphoreSlim(1);
+        private long _lastSuccessNonce = -1;
 
-        public TransactionsManager(Blockchain chain, StacksAccount sender)
+        public TransactionsManager(Blockchain chain, StacksAccountBase sender)
         {
             Chain = chain;
             Sender = sender;
@@ -73,11 +80,11 @@ namespace StacksForce.Stacks.ChainTransactions
                 _id2Info.TryGetValue(txid, out currentInfo);
                 _id2Transaction.TryGetValue(txid, out t);
                 if (currentInfo == null)
-                    return new AsyncCallResult<TransactionInfo>(new Error("Not found"));
+                    return new Error("NotFound");
             }
 
             if (currentInfo.Status != TransactionStatus.Pending)
-                return new AsyncCallResult<TransactionInfo>(new Error("Incorrect status"));
+                return new Error("IncorrectStatus");
 
             t.UpdateFeeAndNonce(newFee, t.Nonce);
 
@@ -86,9 +93,44 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public async Task<AsyncCallResult<TransactionInfo>> Run(Transaction transaction)
         {
-            var result = await Chain.RunTransaction(Sender, transaction).ConfigureAwait();
+            await _isFree.WaitAsync().ConfigureAwait(); // process transaction requests continuously
+
+            var r = await Chain.Prepare(Sender, transaction).ConfigureAwait();
+            if (r.IsError)
+            {
+                _isFree.Release();
+                return r.Error!;
+            }
+
+            var baseNonce = transaction.Nonce;
+
+            AsyncCallResult<string> result;
+
+            while (true)
+            {
+                if ((long) transaction.Nonce <= _lastSuccessNonce)
+                    transaction.UpdateFeeAndNonce(transaction.Fee, (ulong) _lastSuccessNonce);
+
+                result = await Chain.SignAndBroadcast(Sender, transaction).ConfigureAwait();
+
+                if (result.IsSuccess)
+                {
+                    _lastSuccessNonce = (long)transaction.Nonce;
+                    break;
+                }
+                else if (result.Error is ConflictingNonceInMempoolError)
+                {
+                    if (transaction.Nonce < baseNonce + 3)
+                        transaction.UpdateFeeAndNonce(transaction.Fee, transaction.Nonce + 1);
+                    else break;
+                }
+                else break;
+            }
+
+            _isFree.Release();
+
             if (result.IsError)
-                return new AsyncCallResult<TransactionInfo>(result.Error!);
+                return result.Error!;
 
             Log.Debug($"TransactionManager broadcasted: {transaction.Nonce} {transaction.Fee} {transaction.TransactionType}");
 
@@ -97,12 +139,14 @@ namespace StacksForce.Stacks.ChainTransactions
             lock (_id2Info) { 
                 if (_id2Info.TryGetValue(txId, out var t)) // send the same transaction
                 {
-                    return new AsyncCallResult<TransactionInfo>(new AlreadyBroadcastedError(txId));
+                    return new AlreadyBroadcastedError(txId);
                 }
             }
             
             var pending = TransactionInfo.GetPending(Chain, transaction.TransactionType, txId)!;
-            Chain.GetTransactionMonitor().WatchTransaction(pending);
+
+            if (MonitorTransactionState)
+                Chain.GetTransactionMonitor().WatchTransaction(pending);
 
             lock (_id2Info)
             {
@@ -110,7 +154,7 @@ namespace StacksForce.Stacks.ChainTransactions
                 _id2Info.Add(txId, pending);
             }
 
-            return new AsyncCallResult<TransactionInfo>(pending);
+            return pending;
         }
 
         public class AlreadyBroadcastedError : Error

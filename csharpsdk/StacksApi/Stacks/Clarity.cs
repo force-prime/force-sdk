@@ -314,6 +314,8 @@ namespace StacksForce.Stacks
             {
                 return _value.ToString();
             }
+
+            public static implicit operator BigInteger(UInteger128 v) => v._value;
         }
 
         public class Integer128 : Value
@@ -326,6 +328,12 @@ namespace StacksForce.Stacks
             {
                 _value = v;
             }
+
+            public Integer128(BigInteger v) : base(Types.Int)
+            {
+                _value = v;
+            }
+
             public Integer128(ReadOnlySpan<byte> bytes) : base(Types.Int)
             {
                 _value = new BigInteger(bytes, false, true);
@@ -342,6 +350,8 @@ namespace StacksForce.Stacks
             {
                 return _value.ToString();
             }
+
+            public static implicit operator BigInteger(Integer128 v) => v._value;
         }
 
         public abstract class Principal : Value
@@ -452,6 +462,9 @@ namespace StacksForce.Stacks
                 writer.Write(ByteUtils.UInt32ToByteArrayBigEndian((uint)bytes.Length));
                 writer.Write(bytes);
             }
+
+
+            public static implicit operator string(StringType v) => v._str;
         }
     }
 

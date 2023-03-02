@@ -22,7 +22,7 @@ namespace MauiSample.ViewModels
         public List<TransactionVM> Transactions { get; set; } = new List<TransactionVM>();
 
 
-        private IBasicWallet _wallet;
+        private IWallet _wallet;
 
         static private IBlockchain _chain = StacksAbstractions.TestNet;
 
@@ -49,7 +49,7 @@ namespace MauiSample.ViewModels
                 Mnemonic = mnemonic;
                 Address = _wallet.GetAddress();
                 var stx = await _wallet.GetToken(null);
-                Balance = stx != null ? stx.BalanceFormatted() : "...";
+                Balance = stx.IsSuccess ? stx.Data.BalanceFormatted() : "...";
                 HasWallet = true;
             }
             else
@@ -66,7 +66,7 @@ namespace MauiSample.ViewModels
                 return new TransactionWrapper(null, result.Error);
 
             var info = await TransactionInfo.ForTxId(_chain.AsStacksBlockchain(), result.Data);
-            return new TransactionWrapper(info, info != null ? null : new Error("Can't obtain info"));
+            return new TransactionWrapper(info, info.IsSuccess ? null : info.Error);
         }
 
         public Task<ITransaction> GetTransferStx(string recepient, float amount, string memo) {

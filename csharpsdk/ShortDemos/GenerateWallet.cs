@@ -1,4 +1,5 @@
-﻿using ChainAbstractions.Stacks;
+﻿using ChainAbstractions;
+using ChainAbstractions.Stacks;
 
 namespace ShortDemos
 {
@@ -18,7 +19,13 @@ namespace ShortDemos
 
             Console.WriteLine("Wallet contents: ");
             var tokens = await wallet.GetAllTokens();
-            foreach (var t in tokens)
+            if (tokens.IsError)
+            {
+                Console.WriteLine("Error occured: " + tokens.Error);
+                return;
+            }
+
+            foreach (var t in tokens.Data)
                 Console.WriteLine(t.BalanceFormatted());
 
             Console.WriteLine("Wallet should be empty :)");

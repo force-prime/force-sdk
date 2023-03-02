@@ -1,5 +1,4 @@
 ﻿using StacksForce.Stacks;
-using System;
 using System.Collections.Generic;
 
 namespace ChainAbstractions.Stacks
@@ -16,28 +15,6 @@ namespace ChainAbstractions.Stacks
             if (address.StartsWith("ST"))
                 return TestNet;
             return MainNet;
-        }
-
-        static public string BalanceFormatted(this IFungibleToken token)
-        {
-            return token.Data.FormatCount(token.Balance);
-        }
-
-        static public IFungibleToken From(this IFungibleTokenData data, double value)
-        {
-            var ftData = (FungibleTokenData)data;
-            return new FungibleToken((ulong)(value * Math.Pow(10, ftData.Decimals)), ftData);
-        }
-
-        static public string FormatBalance(ulong count, uint decimals, string code)
-        {
-            if (decimals == 0)
-                return count.ToString() + " " + code;
-
-            var lowPartSize = (ulong)Math.Pow(10, decimals);
-            var mainPart = count / lowPartSize;
-            var fracPart = count % lowPartSize;
-            return mainPart + "." + fracPart + " " + code;
         }
 
         static private FTMetaDataCache? FTCache(this Blockchain chain) => (_chain2Wrapper[chain] as BlockchainImplBasic).FTCache;

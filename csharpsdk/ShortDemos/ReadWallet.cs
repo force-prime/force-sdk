@@ -16,9 +16,16 @@ namespace ShortDemos
         {
             Console.WriteLine("Reading all fungible tokens...");
             var tokens = await walletInfo.GetAllTokens();
+
+            if (tokens.IsError)
+            {
+                Console.WriteLine("Error occured: " + tokens.Error);
+                return;
+            }
+
             Console.WriteLine($"Tokens for {walletInfo.GetAddress()}:");
 
-            foreach (var t in tokens)
+            foreach (var t in tokens.Data)
             {
                 Console.WriteLine($"{t.BalanceFormatted()} ({t.Data.Description})");
             }

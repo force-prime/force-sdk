@@ -31,12 +31,18 @@ namespace StacksForce.Utils
             _info = info != null ? info : string.Empty;
         }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             return _id + Environment.NewLine + _info;
+        }
+
+        public virtual object ToJsonObject()
+        {
+            return new { Id, Info };
         }
     }
 
-    public class NetworkError: Error
+    public class NetworkError : Error
     {
         public NetworkError(string id, Exception exception) : base(id)
         {

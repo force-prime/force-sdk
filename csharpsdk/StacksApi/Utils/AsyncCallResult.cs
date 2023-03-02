@@ -32,5 +32,10 @@ namespace StacksForce.Utils
         {
             return IsSuccess ? "Ok: " + Data : "Fail: " + Error;
         }
+
+        public static implicit operator T(AsyncCallResult<T> result) => result.Data;
+
+        public static implicit operator AsyncCallResult<T>(Error error) => new AsyncCallResult<T>(error);
+        public static implicit operator AsyncCallResult<T>(T data) => new AsyncCallResult<T>(data);
     }
 }

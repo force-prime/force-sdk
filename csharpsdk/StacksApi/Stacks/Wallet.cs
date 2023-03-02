@@ -63,28 +63,35 @@ namespace StacksForce.Stacks
         }
     }
 
-    public class StacksAccount
+    public class StacksAccountBase
     {
         private readonly string _privateKey;
         private readonly string _publicKey;
-        private readonly IHDKey _appsKey;
-        private readonly string _salt;
 
         public string PublicKey => _publicKey;
         public string PrivateKey => _privateKey;
 
-        public StacksAccount(string privateKey, IHDKey appsNode, string salt)
+        public StacksAccountBase(string privateKey)
         {
             _privateKey = privateKey;
-            _appsKey = appsNode;
-            _salt = salt;
-
             _publicKey = SigningUtils.GetPublicKeyFromPrivateKey(_privateKey);
         }
 
         public string GetAddress(AddressVersion addressVersion)
         {
             return Address.AddressFromPublicKey(addressVersion, AddressHashMode.SerializeP2PKH, _publicKey);
+        }
+    }
+
+    public class StacksAccount : StacksAccountBase
+    {
+        private readonly IHDKey _appsKey;
+        private readonly string _salt;
+
+        public StacksAccount(string privateKey, IHDKey appsNode, string salt) : base(privateKey)
+        {
+            _appsKey = appsNode;
+            _salt = salt;
         }
 
         public string GetAppPrivateKey(string appDomain)
@@ -94,7 +101,5 @@ namespace StacksForce.Stacks
             var appKeychain = _appsKey.Derive(appIndex + StacksWallet.HARDENED_OFFSET);
             return appKeychain.PrivateKey.ToHex();
         }
-
-        public byte[] Sign(byte[] message) => SigningUtils.Secp256k1Sign(message, _privateKey.ToHexByteArray());
     }
 }

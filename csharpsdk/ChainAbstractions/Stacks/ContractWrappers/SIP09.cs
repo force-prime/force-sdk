@@ -58,8 +58,8 @@ namespace ChainAbstractions.Stacks.ContractWrappers
             var chain = StacksAbstractions.FromAddress(address);
             var owner = await WebApiHelpers.ReadonlyGet<Clarity.Principal>(chain.AsStacksBlockchain(), address, contract, "get-owner", tokenId).ConfigureAwait();
             if (owner.IsSuccess)
-                return owner.Data != null ? new AsyncCallResult<string?>(owner.Data!.ToString()) : new AsyncCallResult<string?>((string?)null);
-            return new AsyncCallResult<string?>(owner.Error!);
+                return owner.Data != null ? owner.Data!.ToString() : null;
+            return owner.Error!;
         }
 
         public Task<ITransaction> Transfer(IBasicWallet caller, string recepient, TokenIdType tokenId) =>

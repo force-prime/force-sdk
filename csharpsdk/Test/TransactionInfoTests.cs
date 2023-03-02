@@ -16,7 +16,7 @@ namespace StacksForceTest
         public static async void TestTransfer()
         {
             var info = await TransactionInfo.ForTxId(Blockchains.Testnet, "5044186ac81109fa864091d9fef8fc69d10e66e9add2a04b528c9d39d8bfbf99");
-            var transfer = info as TransferTransactionInfo;
+            var transfer = info.Data as TransferTransactionInfo;
             Assert.NotNull(transfer);
             Assert.Equal("Faucet", transfer.Memo);
             Assert.Equal(500000000, transfer.Amount);
@@ -29,7 +29,7 @@ namespace StacksForceTest
         public static async void TestCall()
         {
             var info = await TransactionInfo.ForTxId(Blockchains.Testnet, "0xc83b1a9ab6ea2bfce5097172d2e3fce83c43b1e9ba192ce7ee924e2103eeca6e");
-            var contractCall = info as ContractCallTransactionInfo;
+            var contractCall = info.Data as ContractCallTransactionInfo;
             Assert.NotNull(contractCall);
             Assert.True(contractCall.IsAnchored);
             Assert.Equal(TransactionType.ContractCall, contractCall.Type);
@@ -61,7 +61,7 @@ namespace StacksForceTest
         public static async void TestFailed()
         {
             var info = await TransactionInfo.ForTxId(Blockchains.Testnet, "016fe6537fd2a0cd6aea4daf79d766dfe83ce343058e5dd38aef72410484428c");
-            var deploy = info as ContractDeployTransactionInfo;
+            var deploy = info.Data as ContractDeployTransactionInfo;
             Assert.NotNull(deploy);
             Assert.False(deploy.IsAnchored);
             Assert.Equal(TransactionType.SmartContract, deploy.Type);
@@ -72,7 +72,7 @@ namespace StacksForceTest
         public static async void TestFailed2()
         {
             var info = await TransactionInfo.ForTxId(Blockchains.Mainnet, "9ee13c47c9231d64279dd930115271747b6f7bbf4ad3ff1262bec424296fc822");
-            var call = info as ContractCallTransactionInfo;
+            var call = info.Data as ContractCallTransactionInfo;
             Assert.NotNull(call);
             Assert.False(call.IsAnchored);
             Assert.Equal(TransactionType.ContractCall, call.Type);
@@ -83,7 +83,8 @@ namespace StacksForceTest
         [Fact]
         public static async void TestEvents()
         {
-            var info = await TransactionInfo.ForTxId(Blockchains.Mainnet, "0xe2355eaec9795effe58be9d1ccffd939e1799b0c07b5787ab5911f43f41765cf");
+            var infoResult = await TransactionInfo.ForTxId(Blockchains.Mainnet, "0xe2355eaec9795effe58be9d1ccffd939e1799b0c07b5787ab5911f43f41765cf");
+            var info = infoResult.Data;
             Assert.NotNull(info);
             var s1 = info.Events.GetStream();
             var s1Task = s1.ReadMoreAsync(1);

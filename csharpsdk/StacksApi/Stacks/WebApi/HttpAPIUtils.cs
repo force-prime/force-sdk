@@ -2,7 +2,6 @@
 using StacksForce.Utils;
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace StacksForce.Stacks.WebApi
@@ -10,8 +9,6 @@ namespace StacksForce.Stacks.WebApi
     public static class HttpAPIUtils
     {
         private static IHttpClient HTTP => DependencyProvider.HttpClient;
-
-        public static readonly JsonSerializerOptions SERIALIZER_OPTIONS = new JsonSerializerOptions { IncludeFields = true, NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString };
 
         static public Task<AsyncCallResult<T>> PostJson<T>(string url, Dictionary<string, object?>? getFields, object obj2JsonContent) where T : class
         {
@@ -40,30 +37,30 @@ namespace StacksForce.Stacks.WebApi
                 {
                     try
                     {
-                        var error = JsonSerializer.Deserialize<ErrorMessage>(httpError.Content, SERIALIZER_OPTIONS);
-                        return new AsyncCallResult<T>(new BadRequestError(error.error + "::" + error.reason, error.reason_data?.ToString()));
+                        var error = JsonService.Deserialize<ErrorMessage>(httpError.Content);
+                        return ErrorFactory.GetError(error.error, error.reason, error.reason_data);
                     }
                     catch (Exception e) { }
                 }
-                return new AsyncCallResult<T>(result.Error!);
+                return result.Error!;
             }
 
             if (typeof(T) == typeof(string))
             {
                 object o = result.Data.Trim('"');
-                return new AsyncCallResult<T>((T)o);
+                return (T)o;
             }
 
             if (typeof(T) == typeof(ulong))
             {
                 object o = Convert.ToUInt64(result.Data);
-                return new AsyncCallResult<T>((T)o);
+                return (T)o;
             }
 
             try
             {
-                var data = JsonSerializer.Deserialize<T>(result.Data!, SERIALIZER_OPTIONS);
-                return new AsyncCallResult<T>(data!);
+                var data = JsonService.Deserialize<T>(result.Data!);
+                return data!;
             }
             catch (Exception e)
             {
@@ -82,15 +79,53 @@ namespace StacksForce.Stacks.WebApi
         {
             public override string ToString()
             {
-                var r = JsonSerializer.Serialize(this, GetType(), SERIALIZER_OPTIONS);
+                var r = JsonService.Serialize(this, GetType());
                 return r;
             }
         }
 
         public class BadRequestError : Error
         {
-            public BadRequestError(string id, string? info = null) : base(id, info)
+            public string Reason { get; }
+            public BadRequestError(string id, string reason, string? info = null) : base(id, info)
             {
+                Reason = reason;
+            }
+
+            public override string ToString()
+            {
+                return $"{Id}({Reason}): {Info}";
+            }
+
+            public override object ToJsonObject() => new { Id, Reason, Info };
+        }
+
+
+        public class NotEnoughFundsError : BadRequestError
+        {
+            public NotEnoughFundsError(string id, string reason) : base(id, reason)
+            {
+            }
+
+        }
+
+        public class ConflictingNonceInMempoolError : BadRequestError
+        {
+            public ConflictingNonceInMempoolError(string id, string reason) : base(id, reason)
+            {
+            }
+        }
+
+        static private class ErrorFactory
+        {
+            static public Error GetError(string error, string reason, object reason_data)
+            {
+                if (reason == "ConflictingNonceInMempool")
+                    return new ConflictingNonceInMempoolError(error, reason);
+                else if (reason == "NotEnoughFunds")
+                    return new NotEnoughFundsError(error, reason);
+
+                return new BadRequestError(error, reason, reason_data?.ToString());
             }
         }
     }

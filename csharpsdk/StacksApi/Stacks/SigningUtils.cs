@@ -39,6 +39,13 @@ namespace StacksForce.Stacks
             return DependencyProvider.Cryptography.Sha512_256(data).ToHex();
         }
 
+        static public bool Secp256k1Verify(byte[] message, byte[] signature, byte[] pubkey)
+        {
+            if (signature.Length > 64)
+                signature = signature.Skip(1).ToArray();
+            return DependencyProvider.Cryptography.Secp256k1Verify(message, signature, pubkey);
+        }
+
         static public byte[] Secp256k1Sign(byte[] data, byte[] privateKey)
         {
             var sig = DependencyProvider.Cryptography.Secp256k1Sign(data, privateKey.Slice(0, 32), out var recoveryId);
@@ -73,20 +80,38 @@ namespace StacksForce.Stacks
             return hash;
         }
 
-        static public string SignRsv(this StacksAccount account, string message)
+        static public byte[] Sign(this StacksAccountBase account, byte[] message) => Secp256k1Sign(message, account.PrivateKey.ToHexByteArray());
+        static public bool Verify(this StacksAccountBase account, byte[] message, byte[] signature) => Secp256k1Verify(message, signature, account.PublicKey.ToHexByteArray());
+        static public string StacksSignRsv(this StacksAccountBase account, string message) => StacksSignRsv(account.PrivateKey, message);
+        static public bool VerifyStacksSignRsv(this StacksAccountBase account, string message, string signature) => VerifyStacksSignRsv(account.PublicKey, message, signature);
+
+        static public string StacksSignRsv(string privateKey, string message)
         {
-            var bytes2Hash = Encoding.UTF8.GetBytes(SIGNATURE_CHAIN_PREFIX).Concat(
-                SerializeBitcoinVarInt((ulong)message.Length)).Concat(
-                    Encoding.UTF8.GetBytes(message)).ToArray();
+            var sha = GetHashForStacksSigning(message);
 
-            var sha = Sha256(bytes2Hash);
+            var signature = Secp256k1Sign(sha, privateKey.ToHexByteArray());
 
-            var signature = account.Sign(sha);
             var v = signature.Take(1).ToArray();
             var r = signature.Skip(1).Take(32).ToArray();
             var s = signature.Skip(33).Take(32).ToArray();
 
             return r.ToHex() + s.ToHex() + v.ToHex();
+        }
+
+        static public bool VerifyStacksSignRsv(string publicKey, string message, string signature)
+        {
+            var sha = GetHashForStacksSigning(message);
+            var rs = signature.ToHexByteArray().Take(64).ToArray();
+            return Secp256k1Verify(sha, rs, publicKey.ToHexByteArray());
+        }
+
+        static private byte[] GetHashForStacksSigning(string message)
+        {
+            var bytes2Hash = Encoding.UTF8.GetBytes(SIGNATURE_CHAIN_PREFIX).Concat(
+             SerializeBitcoinVarInt((ulong)message.Length)).Concat(
+                 Encoding.UTF8.GetBytes(message)).ToArray();
+
+            return Sha256(bytes2Hash);
         }
 
         static private byte[] SerializeBitcoinVarInt(ulong value)

@@ -17,6 +17,7 @@ public class SelectNFTUI : MonoBehaviour
 
     private readonly List<INFT> _nfts = new List<INFT>();
     private bool _nftRequested = false;
+    private bool _loaded = false;
 
     void Awake()
     {
@@ -54,6 +55,13 @@ public class SelectNFTUI : MonoBehaviour
             SetSelected(nfts[0]);
         }
 
+        if (nfts.Count == 0)
+        {
+            dropdown.placeholder.GetComponent<TMP_Text>().text = "No nfts...";
+            SetSelected(null);
+        }
+
+        _loaded = true;
         _nfts.AddRange(nfts);
     }
 
@@ -75,11 +83,14 @@ public class SelectNFTUI : MonoBehaviour
     {
         Game.Current.AssignNft(nft);
         PrintStats(Game.Current.Player);
-        NftMeta.GetNft(nft);
+
+        if (nft != null)
+            NftMeta.GetNft(nft);
     }
 
     private void OnSelectClick()
     {
-        Game.Current.CompleteSelection();
+        if (_loaded)
+            Game.Current.CompleteSelection();
     }
 }

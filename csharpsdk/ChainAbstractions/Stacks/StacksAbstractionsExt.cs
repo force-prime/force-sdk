@@ -16,13 +16,6 @@ namespace ChainAbstractions.Stacks
             throw new ArgumentException("Incorrect blockchain argument");
         }
 
-        static public StacksWallet AsStacksWallet(this IBasicWallet wallet)
-        {
-            if (wallet is BasicWalletImpl impl)
-                return impl._wallet;
-            throw new ArgumentException("Incorrect wallet argument");
-        }
-
         static public TransactionsManager GetTransactionManager(this IBasicWallet wallet)
         {
             if (wallet is BasicWalletImpl impl)

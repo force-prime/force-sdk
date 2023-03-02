@@ -87,6 +87,38 @@ namespace StacksForce.Utils
         protected abstract Task<List<T>?> GetRange(long index, long count);
     }
 
+    public class FilterDataStream<T> : IDataStream<T>
+    {
+        private readonly IDataStream<T> _stream;
+        private readonly Predicate<T> _filter;
+        private readonly List<T> _items = new List<T>();
+
+        public FilterDataStream(IDataStream<T> source, Predicate<T> filter)
+        {
+            _stream = source;
+            _filter = filter;
+        }
+
+        public async Task<List<T>?> ReadMoreAsync(int count)
+        {
+            _items.Clear();
+            while (_items.Count < count)
+            {
+                var data = await _stream.ReadMoreAsync(count - _items.Count).ConfigureAwait();
+                if (data == null)
+                    return null;
+
+                if (data.Count == 0)
+                    break;
+
+                foreach (var item in data)
+                    if (_filter(item))
+                        _items.Add(item);
+            }
+            return _items;
+        }
+    }
+
     public class TransformDataStream<T, TSource> : IDataStream<T>
     {
         public delegate T TransformFunction(TSource source);
@@ -107,6 +139,83 @@ namespace StacksForce.Utils
                 return null;
             return data.Select(x => _transform(x)).ToList();
         }
+    }
+
+    public class DataStreamWithProvider<T>: IDataStream<T>
+    {
+        private readonly Queue<T> _items = new Queue<T>();
+        private bool _isCompleted = false;
+
+        private int _requestCount = -1;
+        private TaskCompletionSource<bool>? _requestCompleted = null;
+
+        public void AddItem(T item)
+        {
+            lock (_items)
+            {
+                _items.Enqueue(item);
+                CheckForRequestCompletion();
+            }
+        }
+        public void AddItems(IEnumerable<T> items)
+        {
+            lock (_items)
+            {
+                foreach (var item in items)
+                    _items.Enqueue(item);
+                CheckForRequestCompletion();
+            }
+        }
+
+        public void NotifyComplete()
+        {
+            _isCompleted = true;
+            lock (_items)
+                CheckForRequestCompletion();
+        }
+
+        public async Task<List<T>?> ReadMoreAsync(int count)
+        {
+            if (count == 0)
+                throw new ArgumentException("count is zero");
+
+            lock (_items)
+            {
+                if (!_isCompleted || _items.Count < count)
+                {
+                    _requestCompleted = new TaskCompletionSource<bool>();
+                    _requestCount = count;
+                } else
+                {
+                    _requestCompleted = null;
+                }
+            }
+
+            if (_requestCompleted != null)
+                await _requestCompleted.Task.ConfigureAwait();
+
+            lock (_items)
+            {
+                var l = new List<T>();
+
+                count = Math.Min(count, _items.Count);
+
+                for (int i = 0; i < count; i++)
+                    l.Add(_items.Dequeue());
+
+                return l;
+            }
+        }
+
+        private void CheckForRequestCompletion()
+        {
+            if (_requestCount > 0 && (_requestCount >= _items.Count || _isCompleted))
+            {
+                _requestCompleted!.SetResult(true);
+                _requestCount = -1;
+            }
+        }
+
     }
 
     public class MultipleSourcesDataStream<T> : IDataStream<T>

@@ -31,7 +31,6 @@ namespace StacksForce.Utils
             return url;
         }
 
-
         static public string BuildUrl(string baseUrl, List<(string name, string value)> getFieldList)
         {
             return baseUrl + ((getFieldList != null && getFieldList.Count > 0) ? "?" +
@@ -108,11 +107,11 @@ namespace StacksForce.Utils
                     response.Dispose();
 
                     if (lastError == null)
-                        return new AsyncCallResult<string>(contentAsString);
+                        return contentAsString;
                 }
             }
 
-            return new AsyncCallResult<string>(lastError!);
+            return lastError!;
         }
 
         static private HttpClient CreateHttpClient()
@@ -127,6 +126,20 @@ namespace StacksForce.Utils
             public Error? CheckResponseForError(string contentAsString) => null;
 
             public int GetRetryDelayMs(int tryCount, Error? lastError) => -1;
+        }
+
+        public class InfiniteRetryStrategy: IRetryStrategy
+        {
+            private readonly int _delayMs;
+
+            public InfiniteRetryStrategy(int delayMs)
+            {
+                _delayMs = delayMs;
+            }
+
+            public Error? CheckResponseForError(string contentAsString) => null;
+
+            public int GetRetryDelayMs(int tryCount, Error? lastError) => _delayMs;
         }
 
         public class NRetryStrategy : IRetryStrategy

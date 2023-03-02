@@ -17,8 +17,8 @@ namespace StacksForce.Stacks.WebApi
 
             var result = await HttpAPIUtils.PostJson<GetSTXTestnetTokensResult>(methodName, getFields, new { });
             if (result.IsError)
-                return new AsyncCallResult<string>(result.Error!);
-            return new AsyncCallResult<string>(result.Data.txId);
+                return result.Error!;
+            return result.Data.txId;
         }
 
         private class GetSTXTestnetTokensResult

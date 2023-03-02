@@ -60,10 +60,10 @@ namespace StacksForce.Stacks.ChainTransactions
             return info;
         }
 
-        static public async Task<TransactionInfo?> ForTxId(Blockchain chain, string txId) {
+        static public async Task<AsyncCallResult<TransactionInfo>> ForTxId(Blockchain chain, string txId) {
             var result = await GetTxInfo(chain, txId).ConfigureAwait();
             if (result.IsError)
-                return null;
+                return result.Error!;
 
             var type = EnumUtils.FromString(result.Data.tx_type, TransactionType.Undefined);
 
@@ -92,6 +92,7 @@ namespace StacksForce.Stacks.ChainTransactions
                 TransactionType.ContractCall => new ContractCallTransactionInfo(),
                 TransactionType.SmartContract => new ContractDeployTransactionInfo(),
                 TransactionType.Coinbase => new CoinbaseTransactionInfo(),
+                TransactionType.PoisonMicroblock => new PoisonMicroblockTransactionInfo(),
                 _ => null
             };
 
@@ -103,13 +104,13 @@ namespace StacksForce.Stacks.ChainTransactions
 
             var result = await chain.GetTransactionsDetails(new string[] { txId }, 0, 50, true).ConfigureAwait();
             if (result.IsError)
-                return new AsyncCallResult<TransactionData>(result.Error!);
+                return result.Error!;
 
             var response = result.Data[txId];
             if (!response.found)
-                return new AsyncCallResult<TransactionData>(new Error("Not found"));
+                return new Error("NotFound");
 
-            return new AsyncCallResult<TransactionData>(response.result);
+            return response.result;
         }
 
         protected virtual void RefreshFromData(TransactionData transactionData)
@@ -201,6 +202,8 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public Clarity.Value[]? Arguments { get; private set; }
 
+        public string AddressAndContract => $"{Address}.{Contract}";
+
         public override string ToString()
         {
             string arguments = Arguments != null ? string.Join(", ", Arguments.Select(x => x.ToString())) : String.Empty;
@@ -221,6 +224,11 @@ namespace StacksForce.Stacks.ChainTransactions
 
             base.RefreshFromData(result);
         }
+    }
+
+    public class PoisonMicroblockTransactionInfo : TransactionInfo
+    {
+
     }
 
     public class CoinbaseTransactionInfo : TransactionInfo

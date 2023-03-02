@@ -1,8 +1,9 @@
 ﻿using ShortDemos;
 
 // uncomment corresponding demo to launch
-
-await ReadWallet.Demo();
+await CallReadOnly.Demo();
+//await CallContract.Demo();
+//await ReadWallet.Demo();
 //await NFTInfo.Demo();
 //await ReceiveTestStx.Demo();
 //await GenerateWallet.Demo();

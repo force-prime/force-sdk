@@ -1,15 +1,12 @@
 ﻿using StacksForce.Stacks.WebApi;
 using StacksForce.Utils;
 using System;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace StacksForce.Stacks.Metadata
 {
     public class NFTMetaData
     {
-        private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = HttpAPIUtils.SERIALIZER_OPTIONS;
-
         private static readonly NFTMetaData Empty = new NFTMetaData();
 
         public string? Name { get; private set; }
@@ -20,7 +17,7 @@ namespace StacksForce.Stacks.Metadata
         {
             try
             {
-                var data = JsonSerializer.Deserialize<JsonFormat>(json, SERIALIZER_OPTIONS)!;
+                var data = JsonService.Deserialize<JsonFormat>(json)!;
                 string description = data.description;
                 if (string.IsNullOrEmpty(description))
                     description = data.properties?.description;

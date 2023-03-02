@@ -1,5 +1,4 @@
 ﻿using ChainAbstractions;
-using ChainAbstractions.Stacks;
 using StacksForce.Utils;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -35,7 +34,10 @@ namespace MauiSample.ViewModels
         private async Task PopulateWithFTs()
         {
             var fts = await _wallet.GetAllTokens();
-            foreach (var v in fts)
+            if (fts.IsError)
+                return;
+
+            foreach (var v in fts.Data)
             {
                 Items.Add(new Item { Text = v.BalanceFormatted(), Description = v.Data.Description, Image = GetImageSourceForUrl(v.Data.ImageUrl, v.Data.Code) });
             }

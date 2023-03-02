@@ -1,4 +1,5 @@
-﻿using ChainAbstractions.Stacks;
+﻿using ChainAbstractions;
+using ChainAbstractions.Stacks;
 using ChainAbstractions.Stacks.ContractWrappers;
 using StacksForce.Stacks;
 
@@ -16,8 +17,8 @@ namespace StacksForceTest
         {
             var walletInfo = StacksAbstractions.TestNet.GetWalletInfoForAddress("STVM45V862CRMC3CPE10ZBKRNMCT2Y7KWC20B4EQ");
             var stx = await walletInfo.GetToken(null).ConfigureAwait(false);
-            Assert.True(stx != null);
-            Assert.Equal("499.980036 STX", stx.BalanceFormatted());
+            Assert.True(stx.IsSuccess);
+            Assert.Equal("499.980036 STX", stx.Data.BalanceFormatted());
             var nftStream = walletInfo.GetNFTs(null);
             var nfts = await nftStream.ReadMoreAsync(1).ConfigureAwait(false);
             Assert.Equal("TEST-NFT", nfts[0].Name);
@@ -34,7 +35,7 @@ namespace StacksForceTest
             Assert.Equal("GACU", symbolResult.Data);
 
             var decimalsResult = await sip10.GetDecimals().ConfigureAwait(false);
-            Assert.Equal((uint)0, decimalsResult.Data);
+            Assert.Equal((uint) 0, decimalsResult.Data);
 
             var uriResult = await sip10.GetTokenUri().ConfigureAwait(false);
             Assert.True(uriResult.IsSuccess);
