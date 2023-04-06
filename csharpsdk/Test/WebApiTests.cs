@@ -5,6 +5,11 @@ namespace StacksForceTest
 {
     public class WebApiTests
     {
+        static WebApiTests()
+        {
+            StacksDependencies.SetupDefault();
+        }
+
         [Fact]
         public async void GetSTXBalance()
         {
