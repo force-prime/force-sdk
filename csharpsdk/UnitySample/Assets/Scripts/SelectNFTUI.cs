@@ -85,7 +85,7 @@ public class SelectNFTUI : MonoBehaviour
         PrintStats(Game.Current.Player);
 
         if (nft != null)
-            NftMeta.GetNft(nft);
+            StacksForce.NftMeta.RequestNftMetaData(nft);
     }
 
     private void OnSelectClick()

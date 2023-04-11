@@ -124,9 +124,9 @@ namespace StacksForceTest
 
             Assert.NotNull(result);
             Assert.Equal(10, result.Count);
-            Assert.Equal("0x620e5d7a09ed8ba6bafc050f93cc8c83da8af48d3a86ddbabdb511f7cfaf0d64", result[0].TxId);
-            Assert.Equal("0x0100d6a1b16816927664ee262ef95fce32930e7c21b2a2f24a87244fb63a6f2d", result[4].TxId);
-            Assert.Equal("0x164701b3d2f6804342af974d1073ce7ec76eab2a573bd41fe40345273ef384c2", result[9].TxId);
+            Assert.Equal("620e5d7a09ed8ba6bafc050f93cc8c83da8af48d3a86ddbabdb511f7cfaf0d64", result[0].TxId);
+            Assert.Equal("0100d6a1b16816927664ee262ef95fce32930e7c21b2a2f24a87244fb63a6f2d", result[4].TxId);
+            Assert.Equal("164701b3d2f6804342af974d1073ce7ec76eab2a573bd41fe40345273ef384c2", result[9].TxId);
         }
     }
 }

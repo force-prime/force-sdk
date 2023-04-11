@@ -1,4 +1,5 @@
-﻿using StacksForce.Stacks.ChainTransactions;
+﻿using Newtonsoft.Json.Linq;
+using StacksForce.Stacks.ChainTransactions;
 using StacksForce.Utils;
 using System;
 using System.Threading.Tasks;
@@ -78,11 +79,10 @@ namespace StacksForce.Stacks.WebApi
             if (response.method == ADDRESS_TX_UPDATE ||
                 response.method == TX_UPDATE)
             {
-                var transactionJsonElement = response.@params.Value;
+                JToken jobj = response.@params;
                 if (response.method == ADDRESS_TX_UPDATE)
-                    transactionJsonElement = transactionJsonElement.GetProperty("tx");
-                var rawJson = transactionJsonElement.GetRawText();
-                var transactionData = JsonService.Deserialize<TransactionData>(rawJson);
+                    jobj = response.@params["tx"];
+                var transactionData = jobj.ToObject<TransactionData>();
                 var info = TransactionInfo.FromData(_chain, transactionData);
 
                 if (info != null)

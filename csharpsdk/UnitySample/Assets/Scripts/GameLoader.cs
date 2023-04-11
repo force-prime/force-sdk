@@ -12,7 +12,7 @@ public class GameLoader : MonoBehaviour
     void Awake()
     {
         DontDestroyOnLoad(gameObject);
-        ForceSDK.Init();
+        StacksForce.ForceSDK.Init();
     }
 
     private void Start()
@@ -25,6 +25,8 @@ public class GameLoader : MonoBehaviour
     {
         address = null;
         token = null;
+        address = "SP136AXDAQ41R31GJWJX8KX14E2T4K8PA08NCE6Q5";
+        return true;
 
         if (string.IsNullOrEmpty(Application.absoluteURL))
             return false;

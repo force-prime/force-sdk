@@ -28,7 +28,7 @@
 
     public static class Blockchains
     {
-        public static readonly Blockchain Mainnet = new Blockchain("Mainnet", "stacks-node-api.mainnet.stacks.co", ChainID.Mainnet);
-        public static readonly Blockchain Testnet = new Blockchain("Testnet", "stacks-node-api.testnet.stacks.co", ChainID.Testnet);
+        public static readonly Blockchain Mainnet = new Blockchain("Mainnet", "api.hiro.so", ChainID.Mainnet);
+        public static readonly Blockchain Testnet = new Blockchain("Testnet", "api.testnet.hiro.so", ChainID.Testnet);
     }
 }

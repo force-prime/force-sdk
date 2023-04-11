@@ -2613,7 +2613,7 @@ MonoBehaviour:
   distance: {fileID: 1686585975}
   startLabel: {fileID: 1582786851}
   nftName: {fileID: 1131437254}
-  nftImage: {fileID: 1330186615}
+  nftImage: {fileID: 1330186617}
   highscoreButton: {fileID: 369974609}
 --- !u!1 &921080903
 GameObject:
@@ -3801,6 +3801,7 @@ GameObject:
   - component: {fileID: 1330186614}
   - component: {fileID: 1330186616}
   - component: {fileID: 1330186615}
+  - component: {fileID: 1330186617}
   m_Layer: 5
   m_Name: NFTImage
   m_TagString: Untagged
@@ -3866,6 +3867,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1330186613}
   m_CullTransparentMesh: 1
+--- !u!114 &1330186617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1330186613}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fcad5e5c683d9944b79e7ce742605a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1339959369
 GameObject:
   m_ObjectHideFlags: 0

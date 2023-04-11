@@ -37,7 +37,7 @@ public class SendTransactionUI : MonoBehaviour
     {
         var result = await _transaction.Send();
         if (result != null)
-            costText.text = "Error sending transaction...";
+            costText.text = result.ToString();
         else
             costText.text = "Broadcasted succesfully!";
     }

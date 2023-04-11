@@ -232,7 +232,7 @@ namespace ChainAbstractions.Stacks
             if (v is Clarity.Integer128 i128)
                 return new Variable<BigInteger>(i128, IVariable.VariableType.SignedInteger);
             else if (v is Clarity.UInteger128 ui128)
-                return new Variable<BigInteger>(ui128, IVariable.VariableType.UnsingedInterger);
+                return new Variable<BigInteger>(ui128, IVariable.VariableType.UnsignedInteger);
             else if (v is Clarity.Principal principal)
                 return new Variable<string>(principal.ToString(), IVariable.VariableType.Address);
             else if (v is Clarity.StringType str)
@@ -252,7 +252,7 @@ namespace ChainAbstractions.Stacks
         {
             switch (v.Type)
             {
-                case IVariable.VariableType.UnsingedInterger: return new Clarity.UInteger128(v.GetValue<BigInteger>());
+                case IVariable.VariableType.UnsignedInteger: return new Clarity.UInteger128(v.GetValue<BigInteger>());
                 case IVariable.VariableType.SignedInteger: return new Clarity.Integer128(v.GetValue<BigInteger>());
                 case IVariable.VariableType.ByteArray: return new Clarity.ByteBuffer(v.GetValue<byte[]>());
                 case IVariable.VariableType.Address: return Clarity.Principal.FromString(v.GetValue<string>());

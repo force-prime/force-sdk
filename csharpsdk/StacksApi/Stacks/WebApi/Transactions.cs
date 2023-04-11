@@ -70,10 +70,9 @@ namespace StacksForce.Stacks.WebApi
         static public Task<AsyncCallResult<GetTransactionApproximateFeeResponse>> GetTransactionApproximateFee(this Blockchain chain, string transactionPayload, uint estimatedLen = 0)
         {
             string methodName = chain.Endpoint + "v2/fees/transaction";
-            var data = new
-            {
-                transaction_payload = transactionPayload,
-                estimated_len = estimatedLen
+            var data = new Dictionary<string, object?> {
+                { "transaction_payload", transactionPayload },
+                { "estimated_len", estimatedLen },
             };
             return HttpAPIUtils.PostJson<GetTransactionApproximateFeeResponse>(methodName, null, data);
         }

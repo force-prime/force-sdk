@@ -11,6 +11,7 @@ namespace StacksForce.Stacks.ChainTransactions
     public class TransactionsManager
     {
         static public bool MonitorTransactionState = true;
+        static public ulong DefaultTransactionCostUstx = 10000;
 
         public Blockchain Chain { get; }
         public StacksAccountBase Sender { get; }

@@ -7,8 +7,6 @@ namespace StacksForce.Stacks.ChainTransactions
 {
     public static class TransactionUtils
     {
-        static private ulong DEFAULT_COST = 1000;
-
         static public async Task<AsyncCallResult<Transaction>> Prepare(this Blockchain chain, StacksAccountBase account, Transaction t)
         {
             var fee = t.Fee;
@@ -21,7 +19,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
             if (fee == 0)
             {
-                fee = DEFAULT_COST;
+                fee = TransactionsManager.DefaultTransactionCostUstx;
             }
 
             if (nonce == 0)
@@ -101,6 +99,20 @@ namespace StacksForce.Stacks.ChainTransactions
             }
 
             return infos;
+        }
+
+        static public string TxIdToSimpleForm(string txId)
+        {
+            if (txId.StartsWith("0x"))
+                return txId.Substring(2);
+            return txId;
+        }
+
+        static public string TxIdToPrefixedForm(string txId)
+        {
+            if (txId.StartsWith("0x"))
+                return txId;
+            return "0x" + txId;
         }
     }
 }

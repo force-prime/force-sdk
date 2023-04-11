@@ -4,6 +4,7 @@
 **/.vs/*
 
 .vscode
+.vsconfig
 
 *.user
 
@@ -13,3 +14,7 @@
 Resource.designer.cs
 
 **/settings/*.toml
+
+**/Library
+**/Logs
+**/Temp

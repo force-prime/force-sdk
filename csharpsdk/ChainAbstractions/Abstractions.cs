@@ -95,7 +95,7 @@ namespace ChainAbstractions
     {
         public enum VariableType
         {
-            UnsingedInterger,
+            UnsignedInteger,
             SignedInteger,
             ByteArray,
             Address,
@@ -132,9 +132,9 @@ namespace ChainAbstractions
     static public class VariableHelpers
     {
         static public IVariable ToVariable(this string value, bool isAscii = false) => new Variable<string>(value, isAscii ? IVariable.VariableType.AsciiString : IVariable.VariableType.UTF8String);
-        static public IVariable ToVariable(this BigInteger value, bool signed = true) => new Variable<BigInteger>(value, signed ? IVariable.VariableType.SignedInteger : IVariable.VariableType.UnsingedInterger);
+        static public IVariable ToVariable(this BigInteger value, bool signed = true) => new Variable<BigInteger>(value, signed ? IVariable.VariableType.SignedInteger : IVariable.VariableType.UnsignedInteger);
         static public IVariable ToVariable(this long value) => new Variable<BigInteger>(value, IVariable.VariableType.SignedInteger);
-        static public IVariable ToVariable(this ulong value) => new Variable<BigInteger>(value, IVariable.VariableType.UnsingedInterger);
+        static public IVariable ToVariable(this ulong value) => new Variable<BigInteger>(value, IVariable.VariableType.UnsignedInteger);
         static public IVariable ToVariable(this byte[] value) => new Variable<byte[]>(value, IVariable.VariableType.ByteArray);
         static public IVariable ToAddressVariable(this string value) => new Variable<string>(value, IVariable.VariableType.Address);
         static public IVariable ToAddressVariable(this bool value) => new Variable<bool>(value, IVariable.VariableType.Boolean);

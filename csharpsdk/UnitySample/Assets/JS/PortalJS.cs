@@ -9,4 +9,9 @@ static public class PortalJS
     {
         RequestMemorableNFT(score, token);
     }
+
+    static public void SendComplete(int score, string token)
+    {
+       
+    }
 }

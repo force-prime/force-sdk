@@ -33,7 +33,7 @@ namespace StacksForce.Stacks.ChainTransactions
         private Blockchain _chain;
         private IDataStreamProvider<TransactionEvent> _events;
 
-        public string StacksExplorerLink => $"https://explorer.stacks.co/txid/{TxId}?chain={_chain.Name.ToLower()}";
+        public string StacksExplorerLink => $"https://explorer.hiro.so/txid/{TxId}?chain={_chain.Name.ToLower()}";
 
         static internal TransactionInfo? FromData(Blockchain chain, TransactionData transactionData)
         {
@@ -49,6 +49,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         static internal TransactionInfo? GetPending(Blockchain chain, TransactionType type, string txId)
         {
+            txId = TransactionUtils.TxIdToSimpleForm(txId);
             var info = FromType(type);
             if (info != null)
             {
@@ -61,6 +62,7 @@ namespace StacksForce.Stacks.ChainTransactions
         }
 
         static public async Task<AsyncCallResult<TransactionInfo>> ForTxId(Blockchain chain, string txId) {
+            txId = TransactionUtils.TxIdToSimpleForm(txId);
             var result = await GetTxInfo(chain, txId).ConfigureAwait();
             if (result.IsError)
                 return result.Error!;
@@ -99,8 +101,7 @@ namespace StacksForce.Stacks.ChainTransactions
 
         private static async Task<AsyncCallResult<TransactionData>> GetTxInfo(Blockchain chain, string txId)
         {
-            if (!txId.StartsWith("0x"))
-                txId = "0x" + txId;
+            txId = TransactionUtils.TxIdToPrefixedForm(txId);
 
             var result = await chain.GetTransactionsDetails(new string[] { txId }, 0, 50, true).ConfigureAwait();
             if (result.IsError)
@@ -171,6 +172,17 @@ namespace StacksForce.Stacks.ChainTransactions
 
             Status = newStatus;
             StatusChanged?.Invoke();
+        }
+
+        internal void RefreshFrom(TransactionInfo newInfo)
+        {
+            BurnBlockTime = newInfo.BurnBlockTime;
+            BlockHeight = newInfo.BlockHeight;
+            MicroblockSequence = newInfo.MicroblockSequence;
+            MicroblockHash = newInfo.MicroblockHash;
+            IsAnchored = newInfo.IsAnchored;
+
+            UpdateStatus(newInfo.Status);
         }
     }
 

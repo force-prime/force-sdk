@@ -9,10 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NBitcoin" Version="7.0.24" />
+    <PackageReference Include="NBitcoin" Version="7.0.25" />
     <PackageReference Include="NBitcoin.Secp256k1" Version="3.1.1" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
-    <PackageReference Include="System.Net.Http.Json" Version="7.0.0" />
-    <PackageReference Include="System.Text.Json" Version="7.0.2" />
   </ItemGroup>
 </Project>

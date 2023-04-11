@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.Json;
 
 namespace StacksForce.Utils
 {
@@ -89,9 +89,9 @@ namespace StacksForce.Utils
         {
             public ulong id;
             public Error? error;
-            public JsonElement? result;
+            public JObject? result;
             public string method;
-            public JsonElement? @params;
+            public JObject? @params;
 
             public class Error
             {

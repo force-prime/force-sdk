@@ -8,8 +8,6 @@ using System;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace StacksForce.Stacks
@@ -32,15 +30,9 @@ namespace StacksForce.Stacks
         {
             private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpHelper.NRetryStrategy(0, 3000);
 
-            private static readonly JsonSerializerOptions SERIALIZER_OPTIONS = JsonService.SERIALIZER_OPTIONS;
             public Task<AsyncCallResult<string>> Get(string uri)
             {
                 return HttpHelper.SendRequest(uri, null, DEFAULT_RETRY_STRATEGY);
-            }
-
-            public Task<AsyncCallResult<string>> Post(string uri)
-            {
-                return PostJson(uri, new { }); // force post
             }
 
             public Task<AsyncCallResult<string>> PostBinary(string uri, byte[] bytes)
@@ -54,7 +46,10 @@ namespace StacksForce.Stacks
 
             public Task<AsyncCallResult<string>> PostJson(string uri, object json)
             {
-                var content = JsonContent.Create(json, new MediaTypeHeaderValue("application/json"), SERIALIZER_OPTIONS);
+                var data = JsonService.Serialize(json, json.GetType());
+                var content = new StringContent(data, System.Text.Encoding.UTF8);
+                content.Headers.Clear();
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                 return HttpHelper.SendRequest(uri, content, DEFAULT_RETRY_STRATEGY);
             }
         }

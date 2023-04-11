@@ -37,12 +37,13 @@ namespace StacksForce.Stacks.ChainTransactions
             }
         }
 
-        private async void OnTxUpdated(TransactionInfo info)
+        private async void OnTxUpdated(TransactionInfo newInfo)
         {
-            var txId = info.TxId;
+            var txId = TransactionUtils.TxIdToSimpleForm(newInfo.TxId);
 
-            if (_id2Info.TryGetValue(txId, out info))
+            if (_id2Info.TryGetValue(txId, out var info))
             {
+                info.RefreshFrom(newInfo);
                 if (!RemoveCompletedAndAnchored(info))
                 {
                     await info.Refresh().ConfigureAwait();
