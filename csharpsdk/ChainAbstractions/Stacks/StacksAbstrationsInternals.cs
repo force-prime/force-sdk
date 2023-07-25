@@ -16,8 +16,12 @@ namespace ChainAbstractions.Stacks
     {
         static public IFungibleToken From(this IFungibleTokenData data, double value)
         {
-            var ftData = (FungibleTokenData)data;
-            return new FungibleToken((ulong)(value * Math.Pow(10, ftData.Decimals)), ftData);
+            return data.FromBase((BigInteger)(value * Math.Pow(10, data.Decimals)));
+        }
+
+        static public IFungibleToken FromBase(this IFungibleTokenData data, BigInteger value)
+        {
+            return new FungibleToken((ulong)value, (FungibleTokenData)data);
         }
 
         private class FungibleTokenData : IFungibleTokenData
@@ -147,6 +151,15 @@ namespace ChainAbstractions.Stacks
             {
                 return new BasicWalletImpl(_blockchain, new StacksAccountBase(privateKey));
             }
+
+            public async Task<AsyncCallResult<ITransactionInfo>> GetTransactionInfo(string txId)
+            {
+                var t = await TransactionInfo.ForTxId(_blockchain, txId).ConfigureAwait();
+                if (t.IsError)
+                    return t.Error!;
+
+                return new TransactionWrapper(t, null);
+            }
         }
 
         private class TestNetImpl : BlockchainImplBasic
@@ -271,18 +284,23 @@ namespace ChainAbstractions.Stacks
 
             public Error? Error { get { UpdateState(); return _error; } }
 
-            public IFungibleToken? Cost => _transaction != null && _transaction.Fee > 0 ? new FungibleToken(_transaction.Fee, Stx as FungibleTokenData) : null;
+            public IFungibleToken? Cost => _cost;
+            public ulong Nonce => _nonce;
 
             private TransactionState _state = TransactionState.Unknown;
             private Error? _error;
             internal TransactionInfo? _info;
             internal Transaction? _transaction;
             private TransactionsManager? _manager;
+            private IFungibleToken? _cost;
+            private ulong _nonce;
 
             public TransactionWrapper(TransactionInfo? info, Error? error)
             {
                 _info = info;
                 _error = error;
+                _nonce = _info != null ? info!.Nonce : 0;
+                _cost = _info != null ? Stx.FromBase(info!.Fee) : null;
             }
 
             public TransactionWrapper(TransactionsManager manager, AsyncCallResult<Transaction> transactionResult)
@@ -290,6 +308,8 @@ namespace ChainAbstractions.Stacks
                 _manager = manager;
                 _transaction = transactionResult.Data;
                 _error = transactionResult.Error;
+                _cost = _transaction != null && _transaction.Fee > 0 ? Stx.FromBase(_transaction.Fee) : null;
+                _nonce = _transaction != null ? _transaction.Nonce : 0;
             }
 
             private void UpdateState()
@@ -337,14 +357,18 @@ namespace ChainAbstractions.Stacks
 
                 if (_transaction == null)
                 {
-                    return new Error("TranasctionNotFound");
+                    return new Error("TransactionNotFound");
                 }
 
                 if (newCost != null)
-                    _transaction.UpdateFeeAndNonce((ulong) newCost.Balance, _transaction.Nonce);
+                {
+                    _cost = newCost;
+                    _transaction.UpdateFeeAndNonce((ulong)newCost.Balance, _transaction.Nonce);
+                }
 
                 var result = await _manager.Run(_transaction).ConfigureAwait();
 
+                _nonce = _transaction.Nonce;
                 _info = result.Data;
                 _error = result.Error;
 
@@ -442,7 +466,7 @@ namespace ChainAbstractions.Stacks
                         if (_readMetaData)
                             nfts.Add(await NFTUtils.GetFrom(data.address, data.contract, data.nft, data.id).ConfigureAwait());
                         else
-                            nfts.Add(new NFTUtils.NFT(t.asset_identifier, data.id, data.nft, string.Empty, string.Empty));
+                            nfts.Add(new NFTUtils.NFT(t.asset_identifier, data.id, data.nft, string.Empty, string.Empty, string.Empty));
                     }
                 }
                 return nfts;

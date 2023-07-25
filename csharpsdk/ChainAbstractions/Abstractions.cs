@@ -33,9 +33,11 @@ namespace ChainAbstractions
 
     public interface INFT
     {
+        string Id { get; }
         string Name { get; }
         string Description { get; }
         string ImageUrl { get; } 
+        string Collection { get; }
     }
 
     public interface IFungibleTokenData {
@@ -60,13 +62,17 @@ namespace ChainAbstractions
         Approved
     }
 
-    public interface ITransaction
+    public interface ITransactionInfo
     {
         string Id { get; }
-        IFungibleToken? Cost { get; } 
+        IFungibleToken? Cost { get; }
         TransactionState State { get; }
         Error? Error { get; }
+        ulong Nonce { get; }
+    }
 
+    public interface ITransaction : ITransactionInfo
+    {
         Task<Error> Send(IFungibleToken? newCost = null);
     }
 
@@ -88,6 +94,7 @@ namespace ChainAbstractions
         IWalletInfo? GetWalletInfoForAddress(string address);
         IBasicWallet? GetWalletInfoForPrivateKey(string privateKey);
 
+        Task<AsyncCallResult<ITransactionInfo>> GetTransactionInfo(string txId);
         Task<AsyncCallResult<IVariable>> CallReadOnly(string from, string address, string method, List<IVariable>? parameters = null);
     }
 
