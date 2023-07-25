@@ -18,17 +18,15 @@ namespace StacksForce.Stacks
         {
             if (DependencyProvider.Cryptography == null)
                 DependencyProvider.Cryptography = new DefaultCryptography();
-            if (DependencyProvider.HDKey == null)
-                DependencyProvider.HDKey = new DefaultHDKey();
-            if (DependencyProvider.BIP39 == null)
-                DependencyProvider.BIP39 = new DefaultBIP39();
+            if (DependencyProvider.BtcFeatures == null)
+                DependencyProvider.BtcFeatures = new DefaultBtcFeatures();
             if (DependencyProvider.HttpClient == null)
                 DependencyProvider.HttpClient = new DefaultHttpClient();
         }
 
         private class DefaultHttpClient : IHttpClient
         {
-            private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpHelper.NRetryStrategy(0, 3000);
+            private static readonly HttpHelper.IRetryStrategy DEFAULT_RETRY_STRATEGY = new RetryStrategy();
 
             public Task<AsyncCallResult<string>> Get(string uri)
             {
@@ -47,10 +45,24 @@ namespace StacksForce.Stacks
             public Task<AsyncCallResult<string>> PostJson(string uri, object json)
             {
                 var data = JsonService.Serialize(json, json.GetType());
-                var content = new StringContent(data, System.Text.Encoding.UTF8);
-                content.Headers.Clear();
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                var content = HttpHelper.GetJsonContent(data);
                 return HttpHelper.SendRequest(uri, content, DEFAULT_RETRY_STRATEGY);
+            }
+
+            private class RetryStrategy : HttpHelper.NRetryStrategy
+            {
+                public RetryStrategy() : base(3, 3500)
+                {
+                }
+
+                protected override bool AllowRetryForError(Error? error)
+                {
+                    return error == null || (error is HttpError e &&
+                        (e.StatusCode == System.Net.HttpStatusCode.TooManyRequests ||
+                         e.StatusCode == System.Net.HttpStatusCode.GatewayTimeout ||
+                         e.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
+                        );
+                }
             }
         }
 
@@ -156,7 +168,7 @@ namespace StacksForce.Stacks
             public SHA512_256() : base(256) { }
         }
 
-        private class DefaultBIP39 : IBIP39
+        private class DefaultBtcFeatures : IBtcFeatures
         {
             public string GenerateMnemonicPhrase()
             {
@@ -175,14 +187,30 @@ namespace StacksForce.Stacks
                 }
                 return null;
             }
-        }
 
-        private class DefaultHDKey : IHDKeyProvider
-        {
+            public string? GetSegwitAddress(string publicKey)
+            {
+                var pubKey = new PubKey(publicKey);
+                return pubKey.GetAddress(ScriptPubKeyType.Segwit, Network.Main).ToString();
+            }
+
+            public string? PrivateKeyToWif(string privateKey)
+            {
+                var pKey = new Key(privateKey.ToHexByteArray());
+                return pKey.GetWif(Network.Main).ToWif();
+            }
+
+            public string? WifToPrivateKey(string wif)
+            {
+                var pKey = Key.Parse(wif, Network.Main);
+                return pKey.ToHex();
+            }
+
             public Dependencies.IHDKey GetFromSeed(string seed)
             {
                 return new HDKey(ExtKey.CreateFromSeed(seed.ToHexByteArray()));
             }
+
         }
     }
 }

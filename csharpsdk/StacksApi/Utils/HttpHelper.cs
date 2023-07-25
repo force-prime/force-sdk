@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace StacksForce.Utils
@@ -37,6 +38,14 @@ namespace StacksForce.Utils
                 string.Join("&", getFieldList.Where(f => !string.IsNullOrEmpty(f.value)).Select(
                             x => x.name + "=" + System.Web.HttpUtility.UrlEncode(x.value)))
                 : string.Empty);
+        }
+
+        static public HttpContent GetJsonContent(string json)
+        {
+            var content = new StringContent(json, System.Text.Encoding.UTF8);
+            content.Headers.Clear();
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            return content;
         }
 
         static public string BuildUrl<T>(string baseUrl, IDictionary<string, T> getFieldList) {
@@ -89,7 +98,7 @@ namespace StacksForce.Utils
                 catch (Exception httpException)
                 {
                     lastError = new NetworkError("HttpRequestException", httpException);
-                    Log.Info("HttpHelper.SendRequest network error: " + lastError.ToString());
+                    Log.Info($"HttpHelper.SendRequest url={url} network error: " + lastError.ToString());
                 }
 
                 if (response != null)
@@ -97,7 +106,8 @@ namespace StacksForce.Utils
                     var contentAsString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                     var duration = DateTime.Now - tryStartTime;
-                    Log.Trace("SendRequest: " + url + " response " + response.StatusCode + " " + contentAsString + " duration = " + duration.TotalSeconds);
+                    Log.Trace("SendRequest: " + url + " response " + response.StatusCode + " " + 
+                        (contentAsString.Length > 1000 ? contentAsString.Substring(0, 1000) + "..." : contentAsString) + " duration = " + duration.TotalSeconds);
 
                     if (response.IsSuccessStatusCode)
                         lastError = retryStrategy.CheckResponseForError(contentAsString);
@@ -155,7 +165,15 @@ namespace StacksForce.Utils
 
             public Error? CheckResponseForError(string contentAsString) => null;
 
-            public int GetRetryDelayMs(int tryCount, Error? lastError) => tryCount <= _tryCount ? _delayMs : -1;
+            public int GetRetryDelayMs(int tryCount, Error? lastError)
+            {
+                if (!AllowRetryForError(lastError))
+                    return -1;
+
+                return tryCount <= _tryCount ? _delayMs : -1;
+            }
+
+            protected virtual bool AllowRetryForError(Error? error) => true;
         }
     }
 }

@@ -19,7 +19,7 @@ namespace StacksForceTest
             string stxPrivateKey = "8721c6a5237f5e8d361161a7855aa56885a3e19e2ea6ee268fb14eabc5e2ed90";
             var pubKey = SigningUtils.GetPublicKeyFromPrivateKey(stxPrivateKey, true);
 
-            Assert.Equal(pubKey, expected);
+            Assert.Equal(expected, pubKey);
         }
 
         [Fact]
@@ -30,7 +30,7 @@ namespace StacksForceTest
             string stxPrivateKey = "8721c6a5237f5e8d361161a7855aa56885a3e19e2ea6ee268fb14eabc5e2ed90";
             var pubKey = SigningUtils.GetPublicKeyFromPrivateKey(stxPrivateKey, false);
 
-            Assert.Equal(pubKey, expected);
+            Assert.Equal(expected, pubKey);
         }
 
         [Fact]
@@ -42,7 +42,7 @@ namespace StacksForceTest
             var pubKey = SigningUtils.GetPublicKeyFromPrivateKey(stxPrivateKey, false);
             var address = Address.AddressFromPublicKey(AddressVersion.MainnetSingleSig, AddressHashMode.SerializeP2PKH, pubKey);
 
-            Assert.Equal(address, expected);
+            Assert.Equal(expected, address);
         }
 
         [Fact]
@@ -51,8 +51,8 @@ namespace StacksForceTest
             const string expected = "xprv9s21ZrQH143K4J83CexJ2sTfgzTZvshpYwUPzx79dwP3GsfkmAjS4GZcx2p4CWt5TZ1QPJ8JsiL1x7L3ChXXZV1np16yFt2uJduyBpN5dRC";
 
             var phrase = "gesture clip cube census regular engage kit ask cereal wrong awkward often glance behave issue lucky erosion harbor guide clever reduce theme surge spell";
-            var seed = DependencyProvider.BIP39.MnemonicToSeedHex(phrase, "");
-            var key = DependencyProvider.HDKey.GetFromSeed(seed);
+            var seed = DependencyProvider.BtcFeatures.MnemonicToSeedHex(phrase, "");
+            var key = DependencyProvider.BtcFeatures.GetFromSeed(seed);
             Assert.Equal(key.ExtendedPrivateKey, expected);
         }
 
@@ -65,13 +65,13 @@ namespace StacksForceTest
             const string expectedAppKey = "6f8b6a170f8b2ee57df5ead49b0f4c8acde05f9e1c4c6ef8223d6a42fabfa314";
 
             var w = new StacksWallet("sound idle panel often situate develop unit text design antenna vendor screen opinion balcony share trigger accuse scatter visa uniform brass update opinion media", "");
-            Assert.Equal(w.Salt, expectedSalt);
+            Assert.Equal(expectedSalt, w.Salt);
 
             var account = w.GetAccount(0);
 
-            Assert.Equal(account.GetAppPrivateKey("https://banter.pub"), expectedAppKey);
-            Assert.Equal(account.GetAddress(AddressVersion.TestnetSingleSig), expectedTestNetAddr);
-            Assert.Equal(account.GetAddress(AddressVersion.MainnetSingleSig), expectedMainNetAddr);
+            Assert.Equal(expectedAppKey, account.GetAppPrivateKey("https://banter.pub"));
+            Assert.Equal(expectedTestNetAddr, account.GetAddress(AddressVersion.TestnetSingleSig));
+            Assert.Equal(expectedMainNetAddr, account.GetAddress(AddressVersion.MainnetSingleSig));
         }
 
         [Fact]
@@ -83,7 +83,7 @@ namespace StacksForceTest
             var pubKey = SigningUtils.GetPublicKeyFromPrivateKey(stxPrivateKey, false);
             var address = Address.AddressFromPublicKey(AddressHashMode.SerializeP2PKH, pubKey);
 
-            Assert.Equal(address.ToHex(), expected);
+            Assert.Equal(expected, address.ToHex());
         }
 
 
@@ -94,10 +94,10 @@ namespace StacksForceTest
             var expected2 = (26, "3742176830998a306cb3820fae78ad19a178f3e3");
 
             var decoded = C32.AddressDecode("SP3FGQ8Z7JY9BWYZ5WM53E0M9NK7WHJF0691NZ159");
-            Assert.Equal(decoded.Value, expected);
+            Assert.Equal(expected, decoded.Value);
 
             var decoded2 = C32.AddressDecode("STVM45V862CRMC3CPE10ZBKRNMCT2Y7KWC20B4EQ");
-            Assert.Equal(decoded2.Value, expected2);
+            Assert.Equal(expected2, decoded2.Value);
         }
 
         [Fact]
@@ -105,7 +105,7 @@ namespace StacksForceTest
         {
             const string expected = "VW5T7SWQJAZ7QSF518VG52DCSZ4CKR1J";
             var encoded = C32.EncodeBigEndian("df0ba3e79792be7be5e50a370289accfc8c9e032".ToHexByteArray());
-            Assert.Equal(encoded, expected);
+            Assert.Equal(expected, encoded);
         }
 
         [Fact]
@@ -113,7 +113,16 @@ namespace StacksForceTest
         {
             const string expected = "S13TMMP2HX4VJQ1W11A761KEJWZ7XG2VE6478XAW9";
             var adr = C32.AddressEncode(1, "f54a5851e9372b87810a8e60cdd2e7cfd80b6e31");
-            Assert.Equal(adr, expected);
+            Assert.Equal(expected, adr);
+        }
+
+        [Fact]
+        static public void TestSegwitAddress()
+        {
+            var mnemonic = "token spatial butter drill city debate pipe shoot target pencil tonight gallery dog globe copy hybrid convince spell load maximum impose crazy engage way";
+            var w = new StacksWallet(mnemonic);
+            var account = w.GetBTCAccount(1);
+            Assert.Equal("bc1q5aptjy5l9q4qcykvccpwlqcvzydg744qkv94d3", account.GetBtcSegwitAddress());
         }
     }
 }

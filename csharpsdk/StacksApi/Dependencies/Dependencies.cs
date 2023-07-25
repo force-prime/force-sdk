@@ -3,15 +3,14 @@ using System.Threading.Tasks;
 
 namespace StacksForce.Dependencies
 {
-    public interface IBIP39
+    public interface IBtcFeatures
     {
         string? MnemonicToSeedHex(string mnemonic, string password);
-        string GenerateMnemonicPhrase();
-    }
-
-    public interface IHDKeyProvider
-    {
         IHDKey GetFromSeed(string seed);
+        string GenerateMnemonicPhrase();
+        string? GetSegwitAddress(string publicKey);
+        string? PrivateKeyToWif(string privateKey);
+        string? WifToPrivateKey(string wif);
     }
 
     public interface IHDKey
