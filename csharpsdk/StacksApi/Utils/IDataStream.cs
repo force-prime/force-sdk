@@ -145,20 +145,28 @@ namespace StacksForce.Utils
     {
         private readonly Queue<T> _items = new Queue<T>();
         private bool _isCompleted = false;
+        private bool _isError = false;
 
         private int _requestCount = -1;
-        private TaskCompletionSource<bool>? _requestCompleted = null;
+        private TaskCompletionSource<bool>? _waitForMoreItems = null;
 
         public void AddItem(T item)
         {
+            if (_isError || _isCompleted)
+                return;
+
             lock (_items)
             {
                 _items.Enqueue(item);
                 CheckForRequestCompletion();
             }
         }
+
         public void AddItems(IEnumerable<T> items)
         {
+            if (_isError || _isCompleted)
+                return;
+
             lock (_items)
             {
                 foreach (var item in items)
@@ -167,8 +175,9 @@ namespace StacksForce.Utils
             }
         }
 
-        public void NotifyComplete()
+        public void NotifyComplete(bool success = true)
         {
+            _isError = !success;
             _isCompleted = true;
             lock (_items)
                 CheckForRequestCompletion();
@@ -181,18 +190,21 @@ namespace StacksForce.Utils
 
             lock (_items)
             {
-                if (!_isCompleted || _items.Count < count)
+                if (!_isCompleted && _items.Count < count)
                 {
-                    _requestCompleted = new TaskCompletionSource<bool>();
+                    _waitForMoreItems = new TaskCompletionSource<bool>();
                     _requestCount = count;
                 } else
                 {
-                    _requestCompleted = null;
+                    _waitForMoreItems = null;
                 }
             }
 
-            if (_requestCompleted != null)
-                await _requestCompleted.Task.ConfigureAwait();
+            if (_waitForMoreItems != null)
+                await _waitForMoreItems.Task.ConfigureAwait();
+
+            if (_isError)
+                return null;
 
             lock (_items)
             {
@@ -209,13 +221,18 @@ namespace StacksForce.Utils
 
         private void CheckForRequestCompletion()
         {
-            if (_requestCount > 0 && (_requestCount >= _items.Count || _isCompleted))
+            if (_isError)
             {
-                _requestCompleted!.SetResult(true);
+                _waitForMoreItems!.TrySetResult(false);
+                return;
+            }
+
+            if (_requestCount > 0 && (_requestCount <= _items.Count || _isCompleted))
+            {
                 _requestCount = -1;
+                _waitForMoreItems!.SetResult(true);
             }
         }
-
     }
 
     public class MultipleSourcesDataStream<T> : IDataStream<T>
