@@ -110,7 +110,7 @@ namespace StacksForce.Stacks.ChainTransactions
             while (true)
             {
                 if ((long) transaction.Nonce <= _lastSuccessNonce)
-                    transaction.UpdateFeeAndNonce(transaction.Fee, (ulong) _lastSuccessNonce);
+                    transaction.UpdateFeeAndNonce(transaction.Fee, (ulong) _lastSuccessNonce + 1);
 
                 result = await Chain.SignAndBroadcast(Sender, transaction).ConfigureAwait();
 
