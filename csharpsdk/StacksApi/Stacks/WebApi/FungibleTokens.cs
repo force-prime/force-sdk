@@ -10,7 +10,7 @@ namespace StacksForce.Stacks.WebApi
         {
             string methodName = $"{chain.Endpoint}extended/v1/tokens/{tokenContractId}/ft/metadata";
 
-            return HttpAPIUtils.PostJson<GetFungibleTokenMetadataResponse>(methodName, null, null);
+            return HttpAPIUtils.GetRequest<GetFungibleTokenMetadataResponse>(methodName);
         }
 
         public class GetFungibleTokenMetadataResponse
