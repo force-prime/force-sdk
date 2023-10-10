@@ -36,9 +36,54 @@ namespace StacksForce.Stacks.ChainTransactions
             return t;
         }
 
+        static public async Task<AsyncCallResult<Transaction>> PrepareSponsored(this Blockchain chain, StacksAccountBase accountOrigin, StacksAccountBase accountSponsor, Transaction t)
+        {
+            var prepareResult = await TransactionUtils.Prepare(chain, accountOrigin, t).ConfigureAwait();
+            if (prepareResult.IsError)
+                return prepareResult;
+
+            var sponsoredTransaction = TransactionBuilder.GetSponsored(t, accountSponsor, 0);
+            var sponsored = await TransactionUtils.PrepareSponsorData(chain, accountSponsor, sponsoredTransaction);
+            if (sponsored.IsError)
+                return sponsored;
+
+            var signer = new TransactionSigner(sponsoredTransaction);
+            signer.SignOrigin(accountOrigin.PrivateKey);
+            signer.SignSponsor(accountSponsor.PrivateKey);
+            return sponsoredTransaction;
+        }
+
+        static public async Task<AsyncCallResult<Transaction>> PrepareSponsorData(this Blockchain chain, StacksAccountBase account, Transaction t)
+        {
+            if (t.Auth.SponsorSpendingCondition == null)
+                throw new System.ArgumentException("Expected sponsored transaction");
+
+            var nonce = t.Auth.SponsorSpendingCondition.Nonce;
+            var fee = t.Auth.SponsorSpendingCondition.Fee;
+
+            if (nonce == 0)
+            {
+                var lastNonceResult = await chain.GetLastNonce(account.GetAddress(chain.GetAddressVersion())).ConfigureAwait();
+                if (lastNonceResult.IsError)
+                    return lastNonceResult.Error!;
+
+                nonce = lastNonceResult.Data.possible_next_nonce;
+            }
+
+            t.Auth.SponsorSpendingCondition.UpdateFeeAndNonce(fee, nonce);
+
+            return t;
+        }
+
         static public Task<AsyncCallResult<string>> SignAndBroadcast(this Blockchain chain, StacksAccountBase account, Transaction transaction) {
-            var ts = new TransactionSigner(transaction);
-            ts.SignOrigin(account.PrivateKey);
+            if (!transaction.Auth.IsSigned())
+            {
+                var ts = new TransactionSigner(transaction);
+                ts.SignOrigin(account.PrivateKey);
+            }
+
+            if (!transaction.Auth.IsSigned())
+                throw new System.Exception("Transaction not signed!");
 
             return chain.BroadcastRawTransaction(transaction.Serialize());
         }

@@ -30,6 +30,12 @@
             return transaction;
         }
 
+        public static Transaction GetSponsored(Transaction transaction, StacksAccountBase sponsor, uint sponsorNonce)
+        {
+            var sponsoredAuth = GetSponsoredAuthorization(transaction.PublicKey, sponsor.PublicKey, transaction.Fee, transaction.Nonce, sponsorNonce);
+            return new Transaction(transaction.Version, transaction.ChainId, sponsoredAuth, transaction.AnchorMode, transaction.Payload, transaction.PostConditionMode, transaction.PostConditions);
+        }
+
         static private Transaction CreateTransaction(this Blockchain blockchain, Authorization auth, Payload payload, PostCondition[]? postConditions = null, PostConditionMode postConditionMode = PostConditionMode.Deny)
         {
             return new Transaction(FromChainId(blockchain.ChainId), blockchain.ChainId, auth, AnchorMode.Any, payload, postConditionMode, postConditions ?? new PostCondition[0]);
@@ -45,5 +51,14 @@
             return authorization;
         }
 
+        static private Authorization GetSponsoredAuthorization(string senderPublicKey, string sponsorPublicKey, ulong fee, ulong nonce, uint sponsorNonce)
+        {
+            var condition = new SingleSigSpendingCondition(AddressHashMode.SerializeP2PKH, senderPublicKey);
+            var sponsorCondition = new SingleSigSpendingCondition(AddressHashMode.SerializeP2PKH, sponsorPublicKey);
+            condition.UpdateFeeAndNonce(fee, nonce);
+            sponsorCondition.UpdateFeeAndNonce(fee, sponsorNonce);
+            var authorization = new Authorization(AuthType.Sponsored, condition, sponsorCondition);
+            return authorization;
+        }
     }
 }

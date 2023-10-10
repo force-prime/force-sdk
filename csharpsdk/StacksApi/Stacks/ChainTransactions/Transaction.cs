@@ -62,6 +62,9 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public void UpdateFeeAndNonce(ulong fee, ulong nonce)
         {
+            if (Auth.SponsorSpendingCondition != null)
+                Auth.SponsorSpendingCondition.UpdateFeeAndNonce(fee, Auth.SponsorSpendingCondition.Nonce);
+
             Auth.SpendingCondition.UpdateFeeAndNonce(fee, nonce);
         }
 
@@ -87,7 +90,7 @@ namespace StacksForce.Stacks.ChainTransactions
         public virtual void SerializeTo(BinaryWriter writer)
         {
             writer.Write((byte)HashMode);
-            writer.Write(Address.AddressFromPublicKey(HashMode, PublicKey));
+            writer.Write(string.IsNullOrEmpty(PublicKey) ? SigningUtils.ZERO_BYTES_20 : Address.AddressFromPublicKey(HashMode, PublicKey));
             writer.Write(ByteUtils.UInt64ToByteArrayBigEndian(Nonce));
             writer.Write(ByteUtils.UInt64ToByteArrayBigEndian(Fee));
         }
@@ -101,11 +104,11 @@ namespace StacksForce.Stacks.ChainTransactions
         public abstract SpendingCondition GetDefault();
 
         public abstract void AddSignature(string signature);
+        public abstract bool IsSigned();
     }
 
     public sealed class SingleSigSpendingCondition : SpendingCondition
     {
-
         public byte[] Signature { get; private set; } = SigningUtils.EMPTY_SIG_65;
 
         public SingleSigSpendingCondition(AddressHashMode hashMode, string publicKey) : base(hashMode, publicKey)
@@ -129,28 +132,47 @@ namespace StacksForce.Stacks.ChainTransactions
         {
             Signature = signature.ToHexByteArray();
         }
+
+        static public SingleSigSpendingCondition GetSigningSentinel()
+        {
+            return new SingleSigSpendingCondition(AddressHashMode.SerializeP2PKH, string.Empty);
+        }
+
+        public override bool IsSigned() => Signature != SigningUtils.EMPTY_SIG_65;
     }
 
     public sealed class Authorization : IBinarySerializable
     {
         public AuthType AuthType { get; }
         public SpendingCondition SpendingCondition { get; }
+        public SingleSigSpendingCondition? SponsorSpendingCondition { get; }
 
-        public Authorization(AuthType authType, SpendingCondition spendingCondition)
+        public Authorization(AuthType authType, SpendingCondition spendingCondition, SingleSigSpendingCondition? sponsorSpendingCondition = null)
         {
+            if (authType == AuthType.Standard && sponsorSpendingCondition != null)
+                throw new ArgumentException("Incorrect number of spending conditions");
+            if (authType == AuthType.Sponsored && sponsorSpendingCondition == null)
+                throw new ArgumentException("Incorrect number of spending conditions");
+
             AuthType = authType;
             SpendingCondition = spendingCondition;
+            SponsorSpendingCondition = sponsorSpendingCondition;
         }
 
         public void SerializeTo(BinaryWriter writer)
         {
             writer.Write((byte)AuthType);
             SpendingCondition.SerializeTo(writer);
+            SponsorSpendingCondition?.SerializeTo(writer);
         }
         public Authorization GetDefault()
         {
+            if (SponsorSpendingCondition != null)
+                return new Authorization(AuthType, SpendingCondition.GetDefault(), SingleSigSpendingCondition.GetSigningSentinel());
             return new Authorization(AuthType, SpendingCondition.GetDefault());
         }
+
+        public bool IsSigned() => SpendingCondition.IsSigned() && (SponsorSpendingCondition == null || SponsorSpendingCondition.IsSigned());
     }
 
     public abstract class PostCondition : IBinarySerializable

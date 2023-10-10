@@ -14,6 +14,7 @@ namespace StacksForce.Stacks
         private const int PRIVATE_KEY_COMPRESSED_LENGTH = 33;
 
         public static readonly byte[] EMPTY_SIG_65 = Enumerable.Range(0, 65).Select(x => (byte)0).ToArray();
+        public static readonly byte[] ZERO_BYTES_20 = Enumerable.Range(0, 20).Select(x => (byte)0).ToArray();
 
         static public PubKeyEncoding GetPubKeyEncoding(string pubKey)
         {

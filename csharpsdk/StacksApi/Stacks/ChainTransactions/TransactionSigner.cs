@@ -17,7 +17,12 @@ namespace StacksForce.Stacks.ChainTransactions
 
         public void SignOrigin(string privateKey)
         {
-            _sigHash = SignAndAppend(_sigHash, privateKey);
+            _sigHash = SignAndAppend(_transaction.Auth.SpendingCondition, AuthType.Standard, _sigHash, privateKey);
+        }
+
+        public void SignSponsor(string privateKey)
+        {
+            _sigHash = SignAndAppend(_transaction.Auth.SponsorSpendingCondition, AuthType.Sponsored, _sigHash, privateKey);
         }
 
         private string SignBegin()
@@ -27,10 +32,10 @@ namespace StacksForce.Stacks.ChainTransactions
             return clone.TxId();
         }
 
-        private string SignAndAppend(string currentSigHash, string privateKey)
+        private string SignAndAppend(SpendingCondition spendingCondition, AuthType authType, string currentSigHash, string privateKey)
         {
-            var next = NextSignature(currentSigHash, _transaction.Auth.AuthType, _transaction.Fee, _transaction.Nonce, _transaction.PublicKey, privateKey);
-            _transaction.Auth.SpendingCondition.AddSignature(next.sig);
+            var next = NextSignature(currentSigHash, authType, spendingCondition.Fee, spendingCondition.Nonce, spendingCondition.PublicKey, privateKey);
+            spendingCondition.AddSignature(next.sig);
             return next.sigHash;
         }
 
